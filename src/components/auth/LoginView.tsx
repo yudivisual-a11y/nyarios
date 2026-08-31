@@ -369,23 +369,15 @@ export const LoginView: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Free Instant OTP Banner Notification */}
-                  <div
-                    onClick={handleAutoFillOtp}
-                    className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs space-y-1 cursor-pointer hover:bg-emerald-500/20 transition-colors animate-pulse"
-                  >
-                    <div className="flex items-center justify-between font-bold">
-                      <span className="flex items-center gap-1.5">
-                        <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Kode OTP Anda (Gratis):</span>
-                      </span>
-                      <span className="font-mono text-sm tracking-widest bg-emerald-400/20 px-2 py-0.5 rounded-lg text-white">
-                        {generatedOtp}
-                      </span>
+                  {/* Real SMS Verification Notice */}
+                  <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-slate-300 text-xs flex items-start gap-2.5">
+                    <Smartphone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-white">Cek Kotak Masuk SMS</p>
+                      <p className="text-[11px] text-slate-400">
+                        Buka aplikasi Pesan (SMS) di HP Anda dan masukkan 6 digit kode verifikasi yang Anda terima.
+                      </p>
                     </div>
-                    <p className="text-[10px] text-emerald-400/80">
-                      👉 Ketuk di sini untuk mengisi kode secara otomatis!
-                    </p>
                   </div>
 
                   {/* 6 Digit Input Boxes */}
