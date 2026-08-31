@@ -169,33 +169,6 @@ export const ContactsView: React.FC = () => {
           )}
         </div>
 
-        {/* Quick Menu Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="p-3.5 rounded-2xl bg-[#1e2025] neu-raised border border-white/5 flex items-center gap-3 hover:scale-[1.02] transition-transform text-left"
-          >
-            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-[#ff4b4b] to-[#ff8533] text-white shadow-md">
-              <UserPlus className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Kontak Baru</h4>
-              <p className="text-[10px] text-slate-400">Simpan nomor baru</p>
-            </div>
-          </button>
-
-          <div className="p-3.5 rounded-2xl bg-[#1e2025] neu-raised border border-white/5 flex items-center gap-3 text-left">
-            <div className="p-2.5 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/20">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">Privasi Kontak</h4>
-              <p className="text-[10px] text-slate-400">Terenkripsi aman</p>
-            </div>
-          </div>
-        </div>
-
         {/* Contacts List Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
