@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #18191d;
+    --bg-surface: #1e2025;
+    --bg-card: #23262c;
+    --bg-inset: #141518;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.06);
+    --coral-accent: #ff4b4b;
+    --color-accent-primary: #ff4b4b;
+    --color-accent-hover: #ff6b6b;
+    --color-accent-from: #ff5757;
+    --color-accent-to: #e63939;
+    --color-accent-shadow: rgba(255, 75, 75, 0.35);
+    --color-accent-glow: rgba(255, 75, 75, 0.2);
+    --shadow-raised: 5px 5px 12px rgba(0, 0, 0, 0.5), -3px -3px 8px rgba(255, 255, 255, 0.03);
+    --shadow-flat: 6px 6px 14px rgba(0, 0, 0, 0.5), -3px -3px 8px rgba(255, 255, 255, 0.03);
+    --shadow-inset: inset 4px 4px 8px rgba(0, 0, 0, 0.55), inset -2px -2px 6px rgba(255, 255, 255, 0.02);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+  }
+}
+
+/* Global Theme Reactive Color Mapping */
+.bg-\[\#18191d\] {
+  background-color: var(--bg-primary) !important;
+}
+
+.bg-\[\#1e2025\] {
+  background-color: var(--bg-surface) !important;
+}
+
+.bg-\[\#23262c\], .bg-\[\#22252b\], .bg-\[\#2a2d35\], .bg-\[\#202227\] {
+  background-color: var(--bg-card) !important;
+}
+
+.bg-\[\#141518\], .bg-\[\#151619\], .bg-\[\#16171a\]\/80 {
+  background-color: var(--bg-inset) !important;
+}
+
+/* Accent Color Rules */
+.text-\[\#ff4b4b\], .text-\[\#ff6b6b\], .text-\[\#ff5757\] {
+  color: var(--color-accent-primary) !important;
+}
+
+.bg-\[\#ff4b4b\] {
+  background-color: var(--color-accent-primary) !important;
+}
+
+.border-\[\#ff4b4b\] {
+  border-color: var(--color-accent-primary) !important;
+}
+
+/* High-Contrast Adaptive Text Hierarchy */
+.text-white:not(.neu-coral-btn *):not(.neu-coral-btn):not([class*="bg-black"] *):not([class*="bg-[#ff4b4b]"] *):not([class*="bg-gradient"] *),
+.text-slate-100:not(.neu-coral-btn *):not(.neu-coral-btn):not([class*="bg-black"] *):not([class*="bg-[#ff4b4b]"] *):not([class*="bg-gradient"] *),
+.text-slate-200:not(.neu-coral-btn *):not(.neu-coral-btn):not([class*="bg-black"] *):not([class*="bg-[#ff4b4b]"] *):not([class*="bg-gradient"] *),
+.text-slate-300:not(.neu-coral-btn *):not(.neu-coral-btn):not([class*="bg-black"] *):not([class*="bg-[#ff4b4b]"] *):not([class*="bg-gradient"] *) {
+  color: var(--text-primary) !important;
+}
+
+.text-slate-400:not(.neu-coral-btn *):not([class*="bg-black"] *):not([class*="bg-[#ff4b4b]"] *),
+.text-slate-500:not(.neu-coral-btn *):not([class*="bg-black"] *):not([class*="bg-[#ff4b4b]"] *) {
+  color: var(--text-secondary) !important;
+}
+
+/* Form Inputs & Insets */
+input, textarea {
+  color: var(--text-primary) !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8;
+}
+
+/* Neumorphic Dark / Light Dynamic Classes */
+.neu-flat {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-flat);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neu-raised {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-raised);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neu-raised-circle {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-raised);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neu-raised-circle:active {
+  box-shadow: var(--shadow-inset);
+}
+
+.neu-inset {
+  background: var(--bg-inset);
+  box-shadow: var(--shadow-inset);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neu-sunken-bar {
+  background: var(--bg-inset);
+  box-shadow: var(--shadow-inset);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neu-coral-btn {
+  background: linear-gradient(145deg, var(--color-accent-from, #ff5757), var(--color-accent-to, #e63939)) !important;
+  color: #ffffff !important;
+  box-shadow: 4px 4px 12px var(--color-accent-shadow, rgba(230, 57, 57, 0.35)), -2px -2px 6px rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.neu-coral-btn * {
+  color: #ffffff !important;
+}
+
+.neu-avatar-rim {
+  box-shadow: 0 0 0 2.5px var(--bg-surface), 4px 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Custom modern thin scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.45);
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Waveform bars animation */
+@keyframes wavePulse {
+  0%, 100% {
+    height: 6px;
+  }
+  50% {
+    height: 24px;
+  }
+}
+
+.animate-wave-1 {
+  animation: wavePulse 1s ease-in-out infinite;
+}
+.animate-wave-2 {
+  animation: wavePulse 1.2s ease-in-out infinite 0.2s;
+}
+.animate-wave-3 {
+  animation: wavePulse 0.8s ease-in-out infinite 0.4s;
+}
+.animate-wave-4 {
+  animation: wavePulse 1.1s ease-in-out infinite 0.1s;
+}
+.animate-wave-5 {
+  animation: wavePulse 0.9s ease-in-out infinite 0.3s;
+}
