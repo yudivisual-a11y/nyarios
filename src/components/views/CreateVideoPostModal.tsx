@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
+import { useHistoryBack } from '../../utils/useHistoryBack';
 
 interface CreateVideoPostModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export const CreateVideoPostModal: React.FC<CreateVideoPostModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  useHistoryBack(isOpen, onClose, 'create_video');
+
   const { createVideoPost } = useApp();
 
   const [caption, setCaption] = useState('');

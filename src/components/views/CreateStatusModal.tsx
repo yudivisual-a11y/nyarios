@@ -16,6 +16,7 @@ import {
 import { Button } from '../ui/Button';
 import { useApp } from '../../context/AppContext';
 import { compressImageFile } from '../../utils/imageCompressor';
+import { useHistoryBack } from '../../utils/useHistoryBack';
 
 interface CreateStatusModalProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  useHistoryBack(isOpen, onClose, 'create_status');
+
   const { createStatus } = useApp();
 
   const [mode, setMode] = useState<'text' | 'image' | 'video'>('text');

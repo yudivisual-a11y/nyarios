@@ -25,22 +25,20 @@ import { FolderManagerModal } from './components/features/FolderManagerModal';
 import { GroupDetailDrawer } from './components/features/GroupDetailDrawer';
 import { LoginView } from './components/auth/LoginView';
 import { Message } from './types';
+import { useHistoryBack } from './utils/useHistoryBack';
 
 export const App: React.FC = () => {
   const {
     isLoggedIn,
     activeNavTab,
+    setActiveNavTab,
     activeDesktopSubTab,
+    setActiveDesktopSubTab,
     activeChatId,
     setActiveChatId,
     isGroupDetailOpen,
     setIsGroupDetailOpen,
   } = useApp();
-
-  // If user is not logged in, render the Login Screen
-  if (!isLoggedIn) {
-    return <LoginView />;
-  }
 
   // Modals state
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
@@ -54,6 +52,24 @@ export const App: React.FC = () => {
   const [isQuickAskOpen, setIsQuickAskOpen] = useState(false);
   const [isPollOpen, setIsPollOpen] = useState(false);
   const [isFolderManagerOpen, setIsFolderManagerOpen] = useState(false);
+
+  // Mobile Back Gestures & Device Back Button Handlers
+  useHistoryBack(Boolean(activeChatId), () => setActiveChatId(null), 'chat_canvas');
+  useHistoryBack(isGroupDetailOpen, () => setIsGroupDetailOpen(false), 'group_detail');
+  useHistoryBack(Boolean(activeDesktopSubTab), () => setActiveDesktopSubTab(null), 'desktop_subtab');
+  useHistoryBack(isNewChatOpen, () => setIsNewChatOpen(false), 'new_chat');
+  useHistoryBack(isNewGroupOpen, () => setIsNewGroupOpen(false), 'new_group');
+  useHistoryBack(isSmartSearchOpen, () => setIsSmartSearchOpen(false), 'smart_search');
+  useHistoryBack(isTaskModalOpen, () => setIsTaskModalOpen(false), 'task_modal');
+  useHistoryBack(isScheduleModalOpen, () => setIsScheduleModalOpen(false), 'schedule_modal');
+  useHistoryBack(isQuickAskOpen, () => setIsQuickAskOpen(false), 'quick_ask');
+  useHistoryBack(isPollOpen, () => setIsPollOpen(false), 'poll_modal');
+  useHistoryBack(isFolderManagerOpen, () => setIsFolderManagerOpen(false), 'folder_manager');
+
+  // If user is not logged in, render the Login Screen
+  if (!isLoggedIn) {
+    return <LoginView />;
+  }
 
   const handleOpenTaskModal = (source?: Message) => {
     setTaskSourceMessage(source || null);

@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight, Send, Eye, Sparkles } from 'lucide-react'
 import { StatusStory } from '../../types';
 import { Avatar } from '../ui/Avatar';
 import { formatRelativeTime } from '../../utils/formatters';
+import { useHistoryBack } from '../../utils/useHistoryBack';
 
 interface StoryViewerModalProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
   statuses,
   initialIndex = 0,
 }) => {
+  useHistoryBack(isOpen, onClose, 'story_viewer');
+
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [replyText, setReplyText] = useState('');
