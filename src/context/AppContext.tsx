@@ -562,6 +562,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const logout = () => {
     setIsLoggedIn(false);
     localStorage.setItem('nyarios_is_logged_in', 'false');
+    localStorage.removeItem('nyarios_user');
+    setCurrentUser({
+      id: '',
+      name: '',
+      bio: '',
+      avatar: '',
+      phone: '',
+    });
+    setChats([]);
+    setMessages({});
+    setActiveChatId(null);
   };
 
   const updateUserProfile = (name: string, bio: string, avatar?: string) => {
@@ -1051,7 +1062,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const acceptIncomingCall = () => {
     if (!incomingCall) return;
-    respondToCloudCallSignal(incomingCall.callId, 'accepted');
+    respondToCloudCallSignal(incomingCall.callerPhone, incomingCall.callId, 'accepted');
     setActiveCall({
       isActive: true,
       contactName: incomingCall.callerName,
@@ -1068,7 +1079,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const declineIncomingCall = () => {
     if (!incomingCall) return;
-    respondToCloudCallSignal(incomingCall.callId, 'declined');
+    respondToCloudCallSignal(incomingCall.callerPhone, incomingCall.callId, 'declined');
     setIncomingCall(null);
   };
 
@@ -1091,7 +1102,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCallRecords((prev) => [newRecord, ...prev]);
 
       if (activeChat?.phone) {
-        respondToCloudCallSignal(`call_${activeChat.phone}`, 'ended');
+        respondToCloudCallSignal(activeChat.phone, `call_${activeChat.phone}`, 'ended');
       }
     }
     setActiveCall(null);

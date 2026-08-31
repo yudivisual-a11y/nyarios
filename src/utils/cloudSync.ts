@@ -1,6 +1,7 @@
 /**
  * NYARIOS Real-Time Multi-Device Cloud Synchronization Engine
- * Handles real-time messaging, user discovery, and call signaling between different phone numbers/devices.
+ * Handles real-time messaging, user discovery, and call signaling between different phone numbers/devices
+ * across the public internet using high-speed cloud pub/sub relays + local mesh.
  */
 
 import { CurrentUserData } from '../context/AppContext';
@@ -29,18 +30,9 @@ export interface CloudMessagePayload {
   timestamp: number;
 }
 
-const CLOUD_CHANNEL_NAME = 'nyarios_global_mesh_2026';
 const CLOUD_STORAGE_USERS_KEY = 'nyarios_cloud_directory_v1';
-const CLOUD_STORAGE_MSGS_KEY = 'nyarios_cloud_messages_v1';
-const CLOUD_STORAGE_CALLS_KEY = 'nyarios_cloud_calls_v1';
-
-// Cross-tab and cross-window realtime broadcast channel
-let broadcastChannel: BroadcastChannel | null = null;
-if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-  try {
-    broadcastChannel = new BroadcastChannel(CLOUD_CHANNEL_NAME);
-  } catch {}
-}
+const RELAY_BASE = 'https://ntfy.sh';
+const TOPIC_PREFIX = 'nyarios_2026';
 
 /**
  * Normalizes phone numbers for accurate matching across devices (+6281234567890)
@@ -53,10 +45,15 @@ export function normalizePhoneNumber(phone: string): string {
   return `+${digits}`;
 }
 
+export function phoneToTopic(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  return `${TOPIC_PREFIX}_ph_${digits}`;
+}
+
 /**
  * Registers current user into the global cloud directory
  */
-export function registerUserOnCloud(user: CurrentUserData) {
+export async function registerUserOnCloud(user: CurrentUserData) {
   if (typeof window === 'undefined' || !user.phone) return;
 
   const normalized = normalizePhoneNumber(user.phone);
@@ -71,20 +68,19 @@ export function registerUserOnCloud(user: CurrentUserData) {
   };
 
   try {
-    // 1. Update shared cloud storage directory
+    // 1. Update local shared storage
     const existingRaw = localStorage.getItem(CLOUD_STORAGE_USERS_KEY);
     const users: ContactPerson[] = existingRaw ? JSON.parse(existingRaw) : [];
     const filtered = users.filter((u) => normalizePhoneNumber(u.phone) !== normalized);
     const updated = [cloudUser, ...filtered];
     localStorage.setItem(CLOUD_STORAGE_USERS_KEY, JSON.stringify(updated));
 
-    // 2. Broadcast user presence to other open devices/tabs
-    if (broadcastChannel) {
-      broadcastChannel.postMessage({
-        type: 'USER_PRESENCE',
-        user: cloudUser,
-      });
-    }
+    // 2. Broadcast presence over public cloud relay
+    fetch(`${RELAY_BASE}/${TOPIC_PREFIX}_directory`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'USER_PRESENCE', user: cloudUser }),
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(() => {});
   } catch (e) {
     console.warn('Directory sync notice', e);
   }
@@ -107,57 +103,48 @@ export function getCloudDirectoryUsers(myPhone: string): ContactPerson[] {
 }
 
 /**
- * Sends a real-time message to another phone number across devices
+ * Sends a real-time message to another phone number across the internet
  */
-export function sendCloudRealtimeMessage(
+export async function sendCloudRealtimeMessage(
   sender: CurrentUserData,
   recipientPhone: string,
   message: Message
 ) {
+  const normalizedRecipient = normalizePhoneNumber(recipientPhone);
   const payload: CloudMessagePayload = {
     id: `cmsg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     senderId: sender.id,
     senderName: sender.name,
     senderPhone: normalizePhoneNumber(sender.phone),
     senderAvatar: sender.avatar,
-    recipientPhone: normalizePhoneNumber(recipientPhone),
+    recipientPhone: normalizedRecipient,
     message,
     timestamp: Date.now(),
   };
 
+  const recipientTopic = phoneToTopic(normalizedRecipient);
+
+  // Send across public internet via high-speed cloud relay
   try {
-    // 1. Store in shared cross-device message queue
-    const existingRaw = localStorage.getItem(CLOUD_STORAGE_MSGS_KEY);
-    const list: CloudMessagePayload[] = existingRaw ? JSON.parse(existingRaw) : [];
-    list.unshift(payload);
-    // Keep last 100 messages
-    localStorage.setItem(CLOUD_STORAGE_MSGS_KEY, JSON.stringify(list.slice(0, 100)));
-
-    // 2. Broadcast via realtime channel
-    if (broadcastChannel) {
-      broadcastChannel.postMessage({
-        type: 'INCOMING_MESSAGE',
-        payload,
-      });
-    }
-
-    // 3. Trigger storage event for cross-browser sync
-    window.dispatchEvent(
-      new CustomEvent('nyarios_incoming_msg', { detail: payload })
-    );
-  } catch (e) {
-    console.warn('Realtime message dispatch notice', e);
+    await fetch(`${RELAY_BASE}/${recipientTopic}`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'INCOMING_MESSAGE', payload }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    console.warn('Cloud message relay notice', err);
   }
 }
 
 /**
- * Dispatches a real-time call signal to another phone number across devices
+ * Dispatches a real-time call signal to another phone number across the internet
  */
-export function sendCloudCallSignal(
+export async function sendCloudCallSignal(
   caller: CurrentUserData,
   recipientPhone: string,
   callType: 'voice' | 'video'
-): string {
+): Promise<string> {
+  const normalizedRecipient = normalizePhoneNumber(recipientPhone);
   const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const signal: IncomingCallSignal = {
     callId,
@@ -165,27 +152,22 @@ export function sendCloudCallSignal(
     callerName: caller.name,
     callerPhone: normalizePhoneNumber(caller.phone),
     callerAvatar: caller.avatar,
-    recipientPhone: normalizePhoneNumber(recipientPhone),
+    recipientPhone: normalizedRecipient,
     type: callType,
     timestamp: Date.now(),
     status: 'ringing',
   };
 
+  const recipientCallTopic = `${phoneToTopic(normalizedRecipient)}_calls`;
+
   try {
-    localStorage.setItem(CLOUD_STORAGE_CALLS_KEY, JSON.stringify(signal));
-
-    if (broadcastChannel) {
-      broadcastChannel.postMessage({
-        type: 'CALL_SIGNAL',
-        signal,
-      });
-    }
-
-    window.dispatchEvent(
-      new CustomEvent('nyarios_call_signal', { detail: signal })
-    );
-  } catch (e) {
-    console.warn('Call signaling notice', e);
+    await fetch(`${RELAY_BASE}/${recipientCallTopic}`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'CALL_SIGNAL', signal }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    console.warn('Call signaling relay notice', err);
   }
 
   return callId;
@@ -194,38 +176,26 @@ export function sendCloudCallSignal(
 /**
  * Responds to a call signal (accept, decline, end)
  */
-export function respondToCloudCallSignal(
+export async function respondToCloudCallSignal(
+  callerPhone: string,
   callId: string,
   status: 'accepted' | 'declined' | 'ended'
 ) {
+  const callerCallTopic = `${phoneToTopic(callerPhone)}_calls_resp`;
+
   try {
-    const raw = localStorage.getItem(CLOUD_STORAGE_CALLS_KEY);
-    if (raw) {
-      const signal: IncomingCallSignal = JSON.parse(raw);
-      if (signal.callId === callId) {
-        signal.status = status;
-        localStorage.setItem(CLOUD_STORAGE_CALLS_KEY, JSON.stringify(signal));
-      }
-    }
-
-    if (broadcastChannel) {
-      broadcastChannel.postMessage({
-        type: 'CALL_RESPONSE',
-        callId,
-        status,
-      });
-    }
-
-    window.dispatchEvent(
-      new CustomEvent('nyarios_call_response', { detail: { callId, status } })
-    );
-  } catch (e) {
-    console.warn('Call response notice', e);
+    await fetch(`${RELAY_BASE}/${callerCallTopic}`, {
+      method: 'POST',
+      body: JSON.stringify({ type: 'CALL_RESPONSE', callId, status }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    console.warn('Call response relay notice', err);
   }
 }
 
 /**
- * Listens to incoming cloud events (messages, calls, user presence)
+ * Listens to incoming cloud events (messages, calls, user presence) in real time
  */
 export function subscribeToCloudEvents(
   myPhone: string,
@@ -236,68 +206,78 @@ export function subscribeToCloudEvents(
     onUserPresence: (user: ContactPerson) => void;
   }
 ): () => void {
+  if (typeof window === 'undefined' || !myPhone) return () => {};
+
   const normalizedMyPhone = normalizePhoneNumber(myPhone);
+  const myMsgTopic = phoneToTopic(normalizedMyPhone);
+  const myCallTopic = `${phoneToTopic(normalizedMyPhone)}_calls`;
+  const myCallRespTopic = `${phoneToTopic(normalizedMyPhone)}_calls_resp`;
 
-  const handleBroadcast = (event: MessageEvent) => {
-    const data = event.data;
-    if (!data || !data.type) return;
+  const sources: EventSource[] = [];
 
-    if (data.type === 'INCOMING_MESSAGE') {
-      const payload: CloudMessagePayload = data.payload;
-      if (normalizePhoneNumber(payload.recipientPhone) === normalizedMyPhone) {
-        handlers.onMessage(payload);
-      }
-    } else if (data.type === 'CALL_SIGNAL') {
-      const signal: IncomingCallSignal = data.signal;
-      if (
-        normalizePhoneNumber(signal.recipientPhone) === normalizedMyPhone &&
-        signal.status === 'ringing'
-      ) {
-        handlers.onIncomingCall(signal);
-      }
-    } else if (data.type === 'CALL_RESPONSE') {
-      handlers.onCallResponse(data.callId, data.status);
-    } else if (data.type === 'USER_PRESENCE') {
-      handlers.onUserPresence(data.user);
-    }
-  };
-
-  const handleStorageEvent = (e: StorageEvent) => {
-    if (e.key === CLOUD_STORAGE_MSGS_KEY && e.newValue) {
+  try {
+    // 1. Listen for Incoming Messages
+    const msgSource = new EventSource(`${RELAY_BASE}/${myMsgTopic}/sse`);
+    msgSource.onmessage = (event) => {
       try {
-        const list: CloudMessagePayload[] = JSON.parse(e.newValue);
-        const latest = list[0];
-        if (
-          latest &&
-          normalizePhoneNumber(latest.recipientPhone) === normalizedMyPhone &&
-          Date.now() - latest.timestamp < 3000
-        ) {
-          handlers.onMessage(latest);
+        const raw = JSON.parse(event.data);
+        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
+        if (data.type === 'INCOMING_MESSAGE' && data.payload) {
+          handlers.onMessage(data.payload);
         }
       } catch {}
-    } else if (e.key === CLOUD_STORAGE_CALLS_KEY && e.newValue) {
+    };
+    sources.push(msgSource);
+
+    // 2. Listen for Incoming Calls
+    const callSource = new EventSource(`${RELAY_BASE}/${myCallTopic}/sse`);
+    callSource.onmessage = (event) => {
       try {
-        const signal: IncomingCallSignal = JSON.parse(e.newValue);
-        if (
-          normalizePhoneNumber(signal.recipientPhone) === normalizedMyPhone &&
-          signal.status === 'ringing' &&
-          Date.now() - signal.timestamp < 10000
-        ) {
-          handlers.onIncomingCall(signal);
+        const raw = JSON.parse(event.data);
+        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
+        if (data.type === 'CALL_SIGNAL' && data.signal) {
+          handlers.onIncomingCall(data.signal);
         }
       } catch {}
-    }
-  };
+    };
+    sources.push(callSource);
 
-  if (broadcastChannel) {
-    broadcastChannel.addEventListener('message', handleBroadcast);
+    // 3. Listen for Call Responses
+    const callRespSource = new EventSource(`${RELAY_BASE}/${myCallRespTopic}/sse`);
+    callRespSource.onmessage = (event) => {
+      try {
+        const raw = JSON.parse(event.data);
+        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
+        if (data.type === 'CALL_RESPONSE') {
+          handlers.onCallResponse(data.callId, data.status);
+        }
+      } catch {}
+    };
+    sources.push(callRespSource);
+
+    // 4. Listen for User Directory Presence
+    const dirSource = new EventSource(`${RELAY_BASE}/${TOPIC_PREFIX}_directory/sse`);
+    dirSource.onmessage = (event) => {
+      try {
+        const raw = JSON.parse(event.data);
+        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
+        if (data.type === 'USER_PRESENCE' && data.user) {
+          if (normalizePhoneNumber(data.user.phone) !== normalizedMyPhone) {
+            handlers.onUserPresence(data.user);
+          }
+        }
+      } catch {}
+    };
+    sources.push(dirSource);
+  } catch (err) {
+    console.warn('SSE subscription notice', err);
   }
-  window.addEventListener('storage', handleStorageEvent);
 
   return () => {
-    if (broadcastChannel) {
-      broadcastChannel.removeEventListener('message', handleBroadcast);
-    }
-    window.removeEventListener('storage', handleStorageEvent);
+    sources.forEach((src) => {
+      try {
+        src.close();
+      } catch {}
+    });
   };
 }
