@@ -17,6 +17,15 @@ import {
 } from '../types';
 import { sound } from '../utils/sound';
 import { THEME_PRESETS, applyThemeVariables } from '../utils/themePresets';
+import {
+  normalizePhoneNumber,
+  registerUserOnCloud,
+  sendCloudRealtimeMessage,
+  sendCloudCallSignal,
+  respondToCloudCallSignal,
+  subscribeToCloudEvents,
+  IncomingCallSignal,
+} from '../utils/cloudSync';
 
 export interface CurrentUserData {
   id: string;
@@ -46,17 +55,17 @@ interface AppContextType {
   activeNavTab: MainNavTab;
   setActiveNavTab: (tab: MainNavTab) => void;
   activeDesktopSubTab: DesktopSubTab | null;
-  setActiveDesktopSubTab: (tab: DesktopSubTab | null) => void;
+  setActiveDesktopSubTab: (subTab: DesktopSubTab | null) => void;
   isGroupDetailOpen: boolean;
   setIsGroupDetailOpen: (open: boolean) => void;
 
   // Chat & Folder State
   chats: Chat[];
   activeChatId: string | null;
-  activeChat: Chat | null;
   setActiveChatId: (id: string | null) => void;
-  messages: Record<string, Message[]>;
+  activeChat: Chat | null;
   currentChatMessages: Message[];
+  messages: Record<string, Message[]>;
   customFolders: ChatFolder[];
   activeFolderId: string;
   setActiveFolderId: (id: string) => void;
@@ -78,13 +87,12 @@ interface AppContextType {
   addReaction: (chatId: string, messageId: string, emoji: string) => void;
   saveMessage: (chatId: string, messageId: string, category: 'Penting' | 'Ide' | 'Jadwal' | 'Dokumen' | 'Tugas') => void;
   unsaveMessage: (chatId: string, messageId: string) => void;
-
-  // Interactive Features
+  saveMessageToCategory: (chatId: string, messageId: string, category: 'Penting' | 'Ide' | 'Jadwal' | 'Dokumen' | 'Tugas') => void;
   voteQuickAsk: (chatId: string, messageId: string, choice: 'can_attend' | 'cannot_attend' | 'undecided') => void;
   votePoll: (chatId: string, messageId: string, optionId: string) => void;
   closePoll: (chatId: string, messageId: string) => void;
 
-  // Task & Schedule Management
+  // Tasks & Schedules
   tasks: TaskItem[];
   createTask: (task: Omit<TaskItem, 'id' | 'createdAt'>) => void;
   updateTaskStatus: (taskId: string, status: 'todo' | 'in_progress' | 'done') => void;
@@ -106,8 +114,11 @@ interface AppContextType {
   // Calls State
   callRecords: CallRecord[];
   activeCall: ActiveCallState | null;
-  startCall: (contactName: string, contactAvatar: string | undefined, type: 'voice' | 'video') => void;
+  incomingCall: IncomingCallSignal | null;
+  startCall: (contactName: string, contactAvatar: string | undefined, type: 'voice' | 'video', contactPhone?: string) => void;
   endCall: () => void;
+  acceptIncomingCall: () => void;
+  declineIncomingCall: () => void;
   toggleCallMute: () => void;
   toggleCallVideo: () => void;
   toggleCallSpeaker: () => void;
@@ -393,8 +404,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [statuses]);
 
-
-
   useEffect(() => {
     try {
       localStorage.setItem(`${STORAGE_KEY}_calls`, JSON.stringify(callRecords));
@@ -402,6 +411,103 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.warn('Storage quota notice', e);
     }
   }, [callRecords]);
+
+  const [incomingCall, setIncomingCall] = useState<IncomingCallSignal | null>(null);
+
+  // Real-time Cloud Synchronization Listener
+  useEffect(() => {
+    if (!currentUser?.phone || !isLoggedIn) return;
+    registerUserOnCloud(currentUser);
+
+    const unsubscribe = subscribeToCloudEvents(currentUser.phone, {
+      onMessage: (payload) => {
+        const timeStr = new Date(payload.timestamp).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        setChats((prevChats) => {
+          const existing = prevChats.find(
+            (c) => normalizePhoneNumber(c.phone || '') === normalizePhoneNumber(payload.senderPhone)
+          );
+          const chatId = existing ? existing.id : `chat_${Date.now()}`;
+
+          const incomingMsg: Message = {
+            ...payload.message,
+            id: `msg_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+            chatId,
+            senderId: payload.senderId,
+            senderName: payload.senderName,
+            senderAvatar: payload.senderAvatar,
+            isOutgoing: false,
+            timestamp: timeStr,
+            rawTimestamp: payload.timestamp,
+          };
+
+          setMessages((prevMsgs) => ({
+            ...prevMsgs,
+            [chatId]: [...(prevMsgs[chatId] || []), incomingMsg],
+          }));
+
+          if (existing) {
+            return prevChats.map((c) =>
+              c.id === existing.id
+                ? {
+                    ...c,
+                    unreadCount: activeChatId === existing.id ? 0 : c.unreadCount + 1,
+                    lastMessage: {
+                      text: payload.message.content || 'Pesan baru',
+                      timestamp: timeStr,
+                      rawTimestamp: payload.timestamp,
+                      senderName: payload.senderName,
+                      type: payload.message.type,
+                    },
+                  }
+                : c
+            );
+          } else {
+            const newChat: Chat = {
+              id: chatId,
+              isGroup: false,
+              name: payload.senderName,
+              phone: payload.senderPhone,
+              avatar: payload.senderAvatar,
+              bio: 'Kontak NYARIOS Terhubung',
+              unreadCount: activeChatId === chatId ? 0 : 1,
+              isPinned: false,
+              isMuted: false,
+              isArchived: false,
+              folderIds: [],
+              lastMessage: {
+                text: payload.message.content || 'Pesan baru',
+                timestamp: timeStr,
+                rawTimestamp: payload.timestamp,
+                senderName: payload.senderName,
+                type: payload.message.type,
+              },
+            };
+            return [newChat, ...prevChats];
+          }
+        });
+
+        sound.playMessageReceived();
+      },
+      onIncomingCall: (signal) => {
+        setIncomingCall(signal);
+      },
+      onCallResponse: (callId, status) => {
+        if (status === 'declined' || status === 'ended') {
+          setActiveCall(null);
+          setIncomingCall(null);
+        }
+      },
+      onUserPresence: () => {
+        // Presence updated
+      },
+    });
+
+    return () => unsubscribe();
+  }, [currentUser?.phone, isLoggedIn, activeChatId]);
 
   // Active call timer
   useEffect(() => {
@@ -419,25 +525,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const loginWithPhone = (phone: string, name?: string) => {
-    setCurrentUser(prev => ({
-      ...prev,
-      phone,
-      name: name?.trim() || (prev.name === 'Saya' ? 'Pengguna Nyarios' : prev.name),
-    }));
+    const normalized = normalizePhoneNumber(phone);
+    const digits = normalized.replace(/\D/g, '');
+    const newUser: CurrentUserData = {
+      id: `user_${digits}`,
+      name: name?.trim() || 'Pengguna NYARIOS',
+      bio: 'Menggunakan NYARIOS',
+      avatar: '',
+      phone: normalized,
+    };
+
+    setCurrentUser(newUser);
+    registerUserOnCloud(newUser);
     setIsLoggedIn(true);
     localStorage.setItem('nyarios_is_logged_in', 'true');
+    localStorage.setItem('nyarios_user', JSON.stringify(newUser));
   };
 
   const loginWithGoogle = (email: string, name: string, avatar?: string) => {
-    setCurrentUser(prev => ({
-      ...prev,
+    const cleanId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const newUser: CurrentUserData = {
+      id: cleanId,
       name: name.trim() || 'Pengguna Google',
       bio: email,
-      avatar: avatar || prev.avatar,
+      avatar: avatar || '',
+      phone: '+62 812-0000-0000',
       email,
-    }));
+    };
+    setCurrentUser(newUser);
+    registerUserOnCloud(newUser);
     setIsLoggedIn(true);
     localStorage.setItem('nyarios_is_logged_in', 'true');
+    localStorage.setItem('nyarios_user', JSON.stringify(newUser));
   };
 
   const logout = () => {
@@ -614,6 +733,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       return c;
     }));
+
+    // Transmit to recipient device across network in real-time
+    const targetChat = chats.find(c => c.id === chatId);
+    if (targetChat && targetChat.phone && !targetChat.isGroup) {
+      sendCloudRealtimeMessage(currentUser, targetChat.phone, newMsg);
+    }
 
     sound.playMessageSent();
   };
@@ -900,7 +1025,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Calls
-  const startCall = (contactName: string, contactAvatar: string | undefined, type: 'voice' | 'video') => {
+  const startCall = (
+    contactName: string,
+    contactAvatar: string | undefined,
+    type: 'voice' | 'video',
+    contactPhone?: string
+  ) => {
     setActiveCall({
       isActive: true,
       contactName,
@@ -912,6 +1042,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       isScreenSharing: false,
       durationSeconds: 0,
     });
+
+    const phoneToCall = contactPhone || activeChat?.phone;
+    if (phoneToCall) {
+      sendCloudCallSignal(currentUser, phoneToCall, type);
+    }
+  };
+
+  const acceptIncomingCall = () => {
+    if (!incomingCall) return;
+    respondToCloudCallSignal(incomingCall.callId, 'accepted');
+    setActiveCall({
+      isActive: true,
+      contactName: incomingCall.callerName,
+      contactAvatar: incomingCall.callerAvatar,
+      type: incomingCall.type,
+      isMuted: false,
+      isVideoOff: false,
+      isSpeakerOn: true,
+      isScreenSharing: false,
+      durationSeconds: 0,
+    });
+    setIncomingCall(null);
+  };
+
+  const declineIncomingCall = () => {
+    if (!incomingCall) return;
+    respondToCloudCallSignal(incomingCall.callId, 'declined');
+    setIncomingCall(null);
   };
 
   const endCall = () => {
@@ -930,7 +1088,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         timestamp: 'Baru saja',
         rawTimestamp: Date.now(),
       };
-      setCallRecords(prev => [newRecord, ...prev]);
+      setCallRecords((prev) => [newRecord, ...prev]);
+
+      if (activeChat?.phone) {
+        respondToCloudCallSignal(`call_${activeChat.phone}`, 'ended');
+      }
     }
     setActiveCall(null);
   };
@@ -1079,6 +1241,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addReaction,
         saveMessage,
         unsaveMessage,
+        saveMessageToCategory: saveMessage,
         voteQuickAsk,
         votePoll,
         closePoll,
@@ -1096,8 +1259,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteStatus,
         callRecords,
         activeCall,
+        incomingCall,
         startCall,
         endCall,
+        acceptIncomingCall,
+        declineIncomingCall,
         toggleCallMute,
         toggleCallVideo,
         toggleCallSpeaker,

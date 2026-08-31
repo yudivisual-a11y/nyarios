@@ -9,6 +9,7 @@ import { StatusView } from './components/views/StatusView';
 import { ContactsView } from './components/views/ContactsView';
 import { CallsView } from './components/views/CallsView';
 import { ActiveCallModal } from './components/views/ActiveCallModal';
+import { IncomingCallModal } from './components/views/IncomingCallModal';
 import { ActivityTasksView } from './components/views/ActivityTasksView';
 import { ScheduleAgendaView } from './components/views/ScheduleAgendaView';
 import { ProfileSettingsView } from './components/views/ProfileSettingsView';
@@ -38,6 +39,9 @@ export const App: React.FC = () => {
     setActiveChatId,
     isGroupDetailOpen,
     setIsGroupDetailOpen,
+    incomingCall,
+    acceptIncomingCall,
+    declineIncomingCall,
   } = useApp();
 
   // Modals state
@@ -203,6 +207,12 @@ export const App: React.FC = () => {
       <FolderManagerModal
         isOpen={isFolderManagerOpen}
         onClose={() => setIsFolderManagerOpen(false)}
+      />
+
+      <IncomingCallModal
+        incomingCall={incomingCall}
+        onAccept={acceptIncomingCall}
+        onDecline={declineIncomingCall}
       />
 
       <ActiveCallModal />

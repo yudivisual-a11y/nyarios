@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   Search,
@@ -19,6 +19,7 @@ import { Avatar } from '../ui/Avatar';
 import { sound } from '../../utils/sound';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 import { ContactPerson } from '../../types';
+import { getCloudDirectoryUsers, normalizePhoneNumber } from '../../utils/cloudSync';
 
 export const ContactsView: React.FC = () => {
   const {
@@ -27,6 +28,7 @@ export const ContactsView: React.FC = () => {
     setActiveNavTab,
     createDirectChat,
     startCall,
+    currentUser,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +37,19 @@ export const ContactsView: React.FC = () => {
   const [newContactPhone, setNewContactPhone] = useState('');
   const [newContactBio, setNewContactBio] = useState('Menggunakan NYARIOS');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Cloud synced directory users
+  const [cloudUsers, setCloudUsers] = useState<ContactPerson[]>(() =>
+    getCloudDirectoryUsers(currentUser.phone)
+  );
+
+  // Refresh cloud users on mount and interval
+  useEffect(() => {
+    const refresh = () => setCloudUsers(getCloudDirectoryUsers(currentUser.phone));
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    return () => clearInterval(interval);
+  }, [currentUser.phone]);
 
   // Custom contacts list stored in state / synced from direct chats
   const [customContacts, setCustomContacts] = useState<ContactPerson[]>(() => {
@@ -60,8 +75,11 @@ export const ContactsView: React.FC = () => {
 
   const handleStartChatWithContact = (contact: ContactPerson) => {
     sound.playTap();
-    if (contact.chatId) {
-      setActiveChatId(contact.chatId);
+    const existingChat = chats.find(
+      (c) => normalizePhoneNumber(c.phone || '') === normalizePhoneNumber(contact.phone)
+    );
+    if (existingChat) {
+      setActiveChatId(existingChat.id);
       setActiveNavTab('pesan');
     } else {
       createDirectChat(contact.name, contact.phone || '+62 812-0000-0000');
@@ -71,12 +89,12 @@ export const ContactsView: React.FC = () => {
 
   const handleVoiceCall = (contact: ContactPerson) => {
     sound.playVoiceTone(800);
-    startCall(contact.name, contact.avatar, 'voice');
+    startCall(contact.name, contact.avatar, 'voice', contact.phone);
   };
 
   const handleVideoCall = (contact: ContactPerson) => {
     sound.playVoiceTone(800);
-    startCall(contact.name, contact.avatar, 'video');
+    startCall(contact.name, contact.avatar, 'video', contact.phone);
   };
 
   const handleAddNewContact = (e: React.FormEvent) => {
@@ -101,7 +119,18 @@ export const ContactsView: React.FC = () => {
     showToast(`✓ Kontak "${newPerson.name}" berhasil disimpan!`);
   };
 
-  const filteredContacts = customContacts.filter((c) => {
+  const allContactsList = useMemo(() => {
+    const map = new Map<string, ContactPerson>();
+    cloudUsers.forEach((u) => {
+      map.set(normalizePhoneNumber(u.phone), u);
+    });
+    customContacts.forEach((u) => {
+      map.set(normalizePhoneNumber(u.phone), u);
+    });
+    return Array.from(map.values());
+  }, [cloudUsers, customContacts]);
+
+  const filteredContacts = allContactsList.filter((c) => {
     const q = searchQuery.toLowerCase();
     return (
       c.name.toLowerCase().includes(q) ||
