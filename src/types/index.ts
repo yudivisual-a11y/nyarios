@@ -209,33 +209,16 @@ export interface ChatFolder {
   isCustom?: boolean;
 }
 
-export interface VideoComment {
+export interface ContactPerson {
   id: string;
-  userName: string;
-  userAvatar?: string;
-  text: string;
-  timestamp: string;
-  likes: number;
+  name: string;
+  phone: string;
+  bio?: string;
+  avatar?: string;
+  isOnline?: boolean;
+  lastSeen?: string;
+  chatId?: string;
 }
 
-export interface VideoPost {
-  id: string;
-  creatorId: string;
-  creatorName: string;
-  creatorAvatar?: string;
-  creatorHandle: string;
-  caption: string;
-  videoUrl: string;
-  thumbnailUrl?: string;
-  likes: number;
-  isLiked?: boolean;
-  commentsCount: number;
-  sharesCount: number;
-  timestamp: string;
-  tags: string[];
-  audioTitle?: string;
-  commentsList?: VideoComment[];
-}
-
-export type MainNavTab = 'pesan' | 'video' | 'status' | 'komunitas' | 'panggilan' | 'saya';
+export type MainNavTab = 'pesan' | 'kontak' | 'status' | 'komunitas' | 'panggilan' | 'saya';
 export type DesktopSubTab = 'tersimpan' | 'aktivitas' | 'jadwal' | 'file_center' | 'pengaturan';

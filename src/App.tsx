@@ -6,7 +6,7 @@ import { ChatList } from './components/chat/ChatList';
 import { ChatCanvas } from './components/chat/ChatCanvas';
 import { CommunityView } from './components/views/CommunityView';
 import { StatusView } from './components/views/StatusView';
-import { VideoLiveView } from './components/views/VideoLiveView';
+import { ContactsView } from './components/views/ContactsView';
 import { CallsView } from './components/views/CallsView';
 import { ActiveCallModal } from './components/views/ActiveCallModal';
 import { ActivityTasksView } from './components/views/ActivityTasksView';
@@ -140,8 +140,8 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* VIDEO & LIVE VIEW */}
-            {activeNavTab === 'video' && <VideoLiveView />}
+            {/* KONTAK VIEW */}
+            {activeNavTab === 'kontak' && <ContactsView />}
 
             {/* KOMUNITAS VIEW */}
             {activeNavTab === 'komunitas' && <CommunityView />}

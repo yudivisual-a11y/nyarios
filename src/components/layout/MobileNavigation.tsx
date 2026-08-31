@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   MessageSquare,
-  Video,
+  BookUser,
   Camera,
   Users2,
   Settings,
@@ -22,9 +22,9 @@ export const MobileNavigation: React.FC = () => {
       badge: totalUnread > 0 ? totalUnread : undefined,
     },
     {
-      id: 'video',
-      label: 'Video',
-      icon: <Video className="w-5 h-5" />,
+      id: 'kontak',
+      label: 'Kontak',
+      icon: <BookUser className="w-5 h-5" />,
     },
     {
       id: 'status',
@@ -46,7 +46,7 @@ export const MobileNavigation: React.FC = () => {
 
   return (
     <div className="md:hidden fixed bottom-4 left-3 right-3 z-30 flex justify-center select-none pointer-events-none">
-      {/* Floating Dark Neumorphic Dock matching the reference image */}
+      {/* Floating Dark Neumorphic Dock */}
       <nav className="pointer-events-auto w-full max-w-md px-3 py-2.5 rounded-full bg-[#18191d]/95 backdrop-blur-xl border border-white/5 shadow-2xl flex items-center justify-around neu-flat">
         {navItems.map((item) => {
           const isActive = activeNavTab === item.id;

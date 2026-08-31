@@ -14,8 +14,6 @@ import {
   DesktopSubTab,
   QuickAskData,
   PollData,
-  VideoPost,
-  VideoComment,
 } from '../types';
 import { sound } from '../utils/sound';
 import { THEME_PRESETS, applyThemeVariables } from '../utils/themePresets';
@@ -115,13 +113,6 @@ interface AppContextType {
   toggleCallSpeaker: () => void;
   toggleCallScreenShare: () => void;
 
-  // Video Feeds (Instagram Style)
-  videoPosts: VideoPost[];
-  likeVideoPost: (postId: string) => void;
-  createVideoPost: (caption: string, videoUrl: string, tags?: string[], audioTitle?: string) => void;
-  addVideoComment: (postId: string, text: string) => void;
-  shareVideoToChat: (postId: string, targetChatId: string) => void;
-
   // Folders Management
   createCustomFolder: (name: string, chatIds: string[]) => void;
   deleteCustomFolder: (folderId: string) => void;
@@ -133,8 +124,6 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'nyarios_chat_state_v1';
-
-const INITIAL_VIDEO_POSTS: VideoPost[] = [];
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Theme state
@@ -321,24 +310,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return [];
   });
 
-  // Video Feeds - PURE ZERO DUMMY DATA
-  const [videoPosts, setVideoPosts] = useState<VideoPost[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_video_posts`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as VideoPost[];
-          // Filter out legacy dummy video IDs
-          const cleaned = parsed.filter(
-            (v) => v.id !== 'vid_1' && v.id !== 'vid_2' && v.id !== 'vid_3'
-          );
-          return cleaned;
-        } catch {}
-      }
-    }
-    return [];
-  });
-
   const [activeCall, setActiveCall] = useState<ActiveCallState | null>(null);
 
   // Sync theme with HTML class
@@ -422,13 +393,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [statuses]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_video_posts`, JSON.stringify(videoPosts));
-    } catch (e) {
-      console.warn('Storage quota notice', e);
-    }
-  }, [videoPosts]);
+
 
   useEffect(() => {
     try {
@@ -1070,87 +1035,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
    // Video Feeds (Instagram Style) Methods
 
-  const likeVideoPost = (postId: string) => {
-    setVideoPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const isLiked = !p.isLiked;
-          return {
-            ...p,
-            isLiked,
-            likes: isLiked ? p.likes + 1 : Math.max(0, p.likes - 1),
-          };
-        }
-        return p;
-      })
-    );
-  };
 
-  const createVideoPost = (caption: string, videoUrl: string, tags: string[] = [], audioTitle?: string) => {
-    const newPost: VideoPost = {
-      id: `vid_${Date.now()}`,
-      creatorId: currentUser.id,
-      creatorName: currentUser.name || 'Saya',
-      creatorAvatar: currentUser.avatar,
-      creatorHandle: `@${currentUser.name.toLowerCase().replace(/\s+/g, '')}`,
-      caption: caption.trim(),
-      videoUrl,
-      likes: 0,
-      isLiked: false,
-      commentsCount: 0,
-      sharesCount: 0,
-      timestamp: 'Baru saja',
-      tags,
-      audioTitle: audioTitle || `Original Audio - ${currentUser.name}`,
-      commentsList: [],
-    };
-
-    setVideoPosts((prev) => [newPost, ...prev]);
-  };
-
-  const addVideoComment = (postId: string, text: string) => {
-    if (!text.trim()) return;
-    const newComment: VideoComment = {
-      id: `vc_${Date.now()}`,
-      userName: currentUser.name || 'Saya',
-      userAvatar: currentUser.avatar,
-      text: text.trim(),
-      timestamp: 'Baru saja',
-      likes: 0,
-    };
-
-    setVideoPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            commentsCount: p.commentsCount + 1,
-            commentsList: [newComment, ...(p.commentsList || [])],
-          };
-        }
-        return p;
-      })
-    );
-  };
-
-  const shareVideoToChat = (postId: string, targetChatId: string) => {
-    const post = videoPosts.find((p) => p.id === postId);
-    if (!post) return;
-
-    sendMessage(
-      targetChatId,
-      `🎬 ${post.caption}\nOleh ${post.creatorName} (${post.creatorHandle})`,
-      'video',
-      {
-        attachment: {
-          name: 'video.mp4',
-          size: 1024000,
-          type: 'video',
-          url: post.videoUrl,
-        },
-      }
-    );
-  };
 
   return (
     <AppContext.Provider
@@ -1217,11 +1102,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         toggleCallVideo,
         toggleCallSpeaker,
         toggleCallScreenShare,
-        videoPosts,
-        likeVideoPost,
-        createVideoPost,
-        addVideoComment,
-        shareVideoToChat,
         createCustomFolder,
         deleteCustomFolder,
         simulateContactReply,

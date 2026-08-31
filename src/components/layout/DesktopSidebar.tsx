@@ -1,10 +1,9 @@
-import React from 'react';
 import {
   MessageSquare,
   Users2,
   CircleDot,
   Phone,
-  Video,
+  BookUser,
   Bookmark,
   CheckSquare,
   Calendar,
@@ -40,9 +39,9 @@ export const DesktopSidebar: React.FC = () => {
       badge: totalUnread,
     },
     {
-      id: 'video',
-      label: 'Video',
-      icon: <Video className="w-5 h-5" />,
+      id: 'kontak',
+      label: 'Kontak',
+      icon: <BookUser className="w-5 h-5" />,
     },
     {
       id: 'komunitas',

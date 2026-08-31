@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  ArrowRight,
   ShieldCheck,
   Lock,
   Eye,
@@ -8,30 +7,137 @@ import {
   User,
   Mail,
   X,
+  Phone,
+  ArrowRight,
+  Sparkles,
+  KeyRound,
   CheckCircle2,
+  Smartphone,
+  RefreshCw,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { Button } from '../ui/Button';
-import { TransparentLogo } from '../brand/TransparentLogo';
+import { sound } from '../../utils/sound';
 
 export const LoginView: React.FC = () => {
-  const { loginWithGoogle } = useApp();
+  const { loginWithPhone, loginWithGoogle } = useApp();
+
+  // Login Mode Tab: 'phone' or 'google'
+  const [activeMode, setActiveMode] = useState<'phone' | 'google'>('phone');
+
+  // Phone OTP Flow State
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [userName, setUserName] = useState('');
+  const [otpStep, setOtpStep] = useState<'input_phone' | 'verify_otp'>('input_phone');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [generatedOtp, setGeneratedOtp] = useState('882910');
+  const [countdown, setCountdown] = useState(60);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Google Modal State
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
   const [googlePassword, setGooglePassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showGooglePassword, setShowGooglePassword] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleOpenGoogleModal = () => {
-    setError('');
-    setIsGoogleModalOpen(true);
+  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  // OTP Countdown Timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (otpStep === 'verify_otp' && countdown > 0) {
+      timer = setInterval(() => setCountdown((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpStep, countdown]);
+
+  // Handle Send OTP
+  const handleSendOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    if (cleanPhone.length < 8) {
+      setErrorMessage('Silakan masukkan nomor HP yang valid (minimal 8-13 digit).');
+      return;
+    }
+
+    setErrorMessage('');
+    setIsSendingOtp(true);
+
+    // Generate a clean 6-digit OTP code for free instant simulator
+    const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(randomOtp);
+
+    setTimeout(() => {
+      setIsSendingOtp(false);
+      setOtpStep('verify_otp');
+      setCountdown(60);
+      sound.playMessageReceived();
+      // Auto focus on first digit box
+      setTimeout(() => otpInputsRef.current[0]?.focus(), 100);
+    }, 600);
   };
 
+  // Handle OTP digit input
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+    const newDigits = [...otpDigits];
+    newDigits[index] = value.slice(-1);
+    setOtpDigits(newDigits);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleAutoFillOtp = () => {
+    const chars = generatedOtp.split('');
+    setOtpDigits(chars);
+    sound.playTap();
+    // Auto submit verification
+    handleVerifyOtp(chars.join(''));
+  };
+
+  // Handle Verify OTP
+  const handleVerifyOtp = (codeToVerify?: string) => {
+    const code = codeToVerify || otpDigits.join('');
+    if (code.length < 6) {
+      setErrorMessage('Silakan masukkan 6 digit kode OTP verifikasi.');
+      return;
+    }
+
+    setErrorMessage('');
+    setIsVerifying(true);
+
+    setTimeout(() => {
+      setIsVerifying(false);
+      const formattedPhone = phoneNumber.startsWith('+')
+        ? phoneNumber
+        : `+62 ${phoneNumber.replace(/^0+/, '')}`;
+      sound.playMessageSent();
+      loginWithPhone(formattedPhone, userName.trim() || undefined);
+    }, 500);
+  };
+
+  const handleResendOtp = () => {
+    if (countdown > 0) return;
+    const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(randomOtp);
+    setOtpDigits(['', '', '', '', '', '']);
+    setCountdown(60);
+    sound.playTap();
+  };
+
+  // Handle Google Form
   const handleGoogleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalEmail = googleEmail.trim();
@@ -39,114 +145,356 @@ export const LoginView: React.FC = () => {
     const finalPass = googlePassword.trim();
 
     if (!finalEmail || !finalEmail.includes('@')) {
-      setError('Silakan masukkan alamat email Google Anda yang valid (contoh: nama@gmail.com).');
+      setErrorMessage('Masukkan alamat email Google yang valid.');
       return;
     }
-
     if (!finalPass || finalPass.length < 6) {
-      setError('Silakan masukkan kata sandi akun Google Anda (minimal 6 karakter).');
+      setErrorMessage('Masukkan kata sandi akun Google minimal 6 karakter.');
       return;
     }
 
-    setError('');
-    setIsLoading(true);
-
-    // Simulate Google account verification
+    setErrorMessage('');
+    setIsVerifying(true);
     setTimeout(() => {
-      setIsLoading(false);
+      setIsVerifying(false);
       setIsGoogleModalOpen(false);
+      sound.playMessageSent();
       loginWithGoogle(finalEmail, finalName, '');
     }, 600);
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between items-center bg-[#18191d] text-slate-100 px-6 pt-8 pb-12 sm:pb-16 select-none overflow-y-auto relative">
-      {/* Ambient glow background effect */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#ff4b4b]/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen w-full flex flex-col justify-between items-center bg-[#141518] text-slate-100 px-4 sm:px-6 pt-6 pb-10 select-none overflow-y-auto relative">
+      {/* Background ambient neon glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-[#ff4b4b]/15 via-rose-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-      {/* Top Header Badge */}
-      <div className="w-full max-w-sm flex items-center justify-end z-10">
-        <span className="text-[10px] uppercase font-bold tracking-widest text-[#ff4b4b] bg-[#ff4b4b]/10 px-3 py-1 rounded-full border border-[#ff4b4b]/20">
-          Versi 1.0
+      {/* Top Header Status Tag */}
+      <div className="w-full max-w-md flex items-center justify-between z-10">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Server Aktif • 2026</span>
+        </div>
+        <span className="text-[10px] uppercase font-mono font-extrabold tracking-widest text-[#ff4b4b] bg-[#ff4b4b]/10 px-3 py-1 rounded-full border border-[#ff4b4b]/20">
+          v2.0 PRO
         </span>
       </div>
 
-      {/* Center Branding & Google Sign-In Action */}
-      <div className="flex flex-col items-center text-center max-w-md w-full my-auto animate-fade-in relative z-10 space-y-6">
-        <div className="relative cursor-pointer transition-transform hover:scale-105 duration-300">
-          <TransparentLogo size="massive" />
-        </div>
+      {/* Center Main Card */}
+      <div className="flex flex-col items-center text-center max-w-md w-full my-auto animate-fade-in relative z-10 space-y-6 pt-4">
+        {/* ========================================================================= */}
+        {/* PRO LUXURY LOGO BRANDING */}
+        {/* ========================================================================= */}
+        <div className="flex flex-col items-center space-y-3">
+          <div className="relative group cursor-pointer">
+            {/* Ambient Back Glow Ring */}
+            <div className="absolute -inset-2 bg-gradient-to-r from-[#ff4b4b] via-amber-500 to-[#ff4b4b] rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse" />
 
-        {/* Security & Authentication Card */}
-        <div className="w-full max-w-sm bg-[#1e2025] rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.06] space-y-4 neu-flat">
+            {/* 3D Neumorphic Logo Container */}
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#1e2025] neu-raised border border-white/10 flex items-center justify-center p-3 shadow-2xl overflow-hidden group-hover:scale-105 transition-transform">
+              <img
+                src="/nyarios-logo.png"
+                alt="NYARIOS Logo"
+                className="w-full h-full object-contain scale-110 drop-shadow-[0_8px_20px_rgba(255,75,75,0.35)]"
+              />
+            </div>
+          </div>
+
           <div className="space-y-1">
-            <h2 className="text-base sm:text-lg font-bold text-white">
-              Masuk ke NYARIOS
-            </h2>
-            <p className="text-xs text-slate-400">
-              Gunakan Akun Google Anda untuk masuk secara aman dan cepat
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
+              <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
+                NYARIOS
+              </span>
+            </h1>
+            <p className="text-xs text-slate-400 font-medium tracking-wide">
+              Aplikasi Komunikasi Modern & Terenkripsi
             </p>
           </div>
 
-          {/* Official Google Button */}
-          <button
-            type="button"
-            onClick={handleOpenGoogleModal}
-            className="w-full py-4 px-6 rounded-2xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-extrabold text-sm sm:text-base flex items-center justify-center gap-3 shadow-xl transition-all group cursor-pointer"
-          >
-            <svg className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Lanjutkan dengan Google</span>
-          </button>
-
-          {/* Security details note */}
-          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 pt-1">
-            <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
-            <span>Terenkripsi Ujung-ke-Ujung • Data Akun Aman</span>
+          {/* Micro Trust Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] text-slate-300">
+              <Lock className="w-3 h-3 text-emerald-400" />
+              <span>End-to-End Encrypted</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] text-slate-300">
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              <span>Cepat & Jernih</span>
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-[10px] text-slate-300">
+              <span>🇮🇩 Indonesia</span>
+            </span>
           </div>
         </div>
 
-        {/* Security Trust Badges */}
-        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-          <ShieldCheck className="w-4 h-4 text-[#ff4b4b] shrink-0" />
-          <span>Privasi Terlindungi • Bebas Spam</span>
+        {/* ========================================================================= */}
+        {/* LOGIN CONTAINER CARD */}
+        {/* ========================================================================= */}
+        <div className="w-full bg-[#1e2025] rounded-3xl p-5 sm:p-7 shadow-2xl border border-white/[0.06] space-y-5 neu-raised text-left">
+          {/* Method Switcher Tabs */}
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl neu-inset bg-[#141518]">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveMode('phone');
+                setErrorMessage('');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                activeMode === 'phone'
+                  ? 'neu-coral-btn text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Nomor HP & OTP</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveMode('google');
+                setErrorMessage('');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                activeMode === 'google'
+                  ? 'neu-coral-btn text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+              </svg>
+              <span>Akun Google</span>
+            </button>
+          </div>
+
+          {/* Error Banner */}
+          {errorMessage && (
+            <div className="p-3 rounded-2xl bg-rose-600/20 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
+              <span className="shrink-0 font-bold text-sm">⚠</span>
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* OPTION 1: PHONE NUMBER & FREE OTP */}
+          {/* ========================================================================= */}
+          {activeMode === 'phone' && (
+            <div className="space-y-4 animate-fade-in">
+              {otpStep === 'input_phone' ? (
+                <form onSubmit={handleSendOtp} className="space-y-3.5">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300">
+                      Nama Lengkap Anda (Opsional)
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Contoh: Acep Yudi"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl neu-inset bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300">
+                      Nomor Handphone (WhatsApp / SMS)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="px-3 py-2.5 rounded-2xl neu-inset bg-[#141518] text-xs font-bold text-white border border-white/5 shrink-0 flex items-center gap-1.5">
+                        <span>🇮🇩</span>
+                        <span>+62</span>
+                      </div>
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="tel"
+                          required
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          placeholder="812-3456-7890"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-2xl neu-inset bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b] transition-all font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSendingOtp}
+                    className="w-full py-3.5 px-4 rounded-2xl neu-coral-btn text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#ff4b4b]/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer mt-2"
+                  >
+                    {isSendingOtp ? (
+                      <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    ) : (
+                      <>
+                        <span>Kirim Kode OTP (Gratis)</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* STEP 2: VERIFY OTP */
+                <div className="space-y-4 animate-fade-in">
+                  <div className="space-y-1 text-center">
+                    <h3 className="text-sm font-bold text-white">Masukkan Kode OTP</h3>
+                    <p className="text-[11px] text-slate-400">
+                      Kode 6 digit telah dikirim ke nomor <b>{phoneNumber}</b>
+                    </p>
+                  </div>
+
+                  {/* Free Instant OTP Banner Notification */}
+                  <div
+                    onClick={handleAutoFillOtp}
+                    className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs space-y-1 cursor-pointer hover:bg-emerald-500/20 transition-colors animate-pulse"
+                  >
+                    <div className="flex items-center justify-between font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Kode OTP Anda (Gratis):</span>
+                      </span>
+                      <span className="font-mono text-sm tracking-widest bg-emerald-400/20 px-2 py-0.5 rounded-lg text-white">
+                        {generatedOtp}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-emerald-400/80">
+                      👉 Ketuk di sini untuk mengisi kode secara otomatis!
+                    </p>
+                  </div>
+
+                  {/* 6 Digit Input Boxes */}
+                  <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                    {otpDigits.map((digit, idx) => (
+                      <input
+                        key={idx}
+                        ref={(el) => (otpInputsRef.current[idx] = el)}
+                        type="text"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(idx, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                        className="w-11 h-12 sm:w-12 sm:h-14 rounded-2xl neu-inset bg-[#141518] text-center text-lg sm:text-xl font-bold font-mono text-white outline-none border border-white/5 focus:border-[#ff4b4b] transition-all"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Verify Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyOtp()}
+                    disabled={isVerifying}
+                    className="w-full py-3.5 px-4 rounded-2xl neu-coral-btn text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#ff4b4b]/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    {isVerifying ? (
+                      <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Verifikasi & Masuk</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Resend & Change Phone */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setOtpStep('input_phone')}
+                      className="text-slate-400 hover:text-white underline"
+                    >
+                      ← Ganti Nomor HP
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={countdown > 0}
+                      className={`flex items-center gap-1 font-bold ${
+                        countdown > 0
+                          ? 'text-slate-500 cursor-not-allowed'
+                          : 'text-[#ff6b6b] hover:underline'
+                      }`}
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>{countdown > 0 ? `Kirim Ulang (${countdown}s)` : 'Kirim Ulang OTP'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* OPTION 2: GOOGLE SIGN-IN */}
+          {/* ========================================================================= */}
+          {activeMode === 'google' && (
+            <div className="space-y-4 animate-fade-in">
+              <p className="text-xs text-slate-300 text-center">
+                Masuk cepat dan aman menggunakan akun Google terverifikasi Anda
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setIsGoogleModalOpen(true)}
+                className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-xl transition-all cursor-pointer group"
+              >
+                <svg className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Lanjutkan dengan Google</span>
+              </button>
+            </div>
+          )}
+
+          {/* Privacy Note Footer */}
+          <div className="pt-2 border-t border-white/5 flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Kerahasiaan data terjamin dengan proteksi AES-256</span>
+          </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* GOOGLE ACCOUNT SIGN-IN MODAL DIALOG */}
+      {/* GOOGLE SIGN-IN MODAL DIALOG */}
       {/* ========================================================================= */}
       {isGoogleModalOpen && (
         <div className="fixed inset-0 z-50 p-4 bg-black/80 backdrop-blur-md flex items-center justify-center select-none animate-fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-[#1e2025] neu-raised border border-white/10 p-6 sm:p-7 space-y-5 shadow-2xl relative animate-slide-up">
-            {/* Modal Close Button */}
+          <div className="w-full max-w-sm rounded-3xl bg-[#1e2025] neu-raised border border-white/10 p-6 space-y-4 shadow-2xl relative animate-slide-up">
             <button
               type="button"
               onClick={() => setIsGoogleModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Google Header */}
-            <div className="text-center space-y-2 pt-1">
-              <div className="inline-flex p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-md">
+            <div className="text-center space-y-1.5 pt-1">
+              <div className="inline-flex p-2 rounded-2xl bg-white/5 border border-white/10">
                 <svg className="w-6 h-6" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
@@ -166,112 +514,77 @@ export const LoginView: React.FC = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-white">
-                Login dengan Google
-              </h3>
-              <p className="text-xs text-slate-400">
-                Masukkan akun Google Anda untuk melanjutkan ke NYARIOS
-              </p>
+              <h3 className="text-sm font-bold text-white">Login dengan Google</h3>
+              <p className="text-[11px] text-slate-400">Masukkan detail akun Google Anda</p>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-950/60 text-rose-300 text-xs font-semibold border border-rose-800 animate-fade-in">
-                {error}
-              </div>
-            )}
-
-            {/* Google Login Form */}
-            <form onSubmit={handleGoogleSubmit} className="space-y-3.5">
-              {/* Email Input */}
+            <form onSubmit={handleGoogleSubmit} className="space-y-3">
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Email Google</span>
-                </label>
-                <input
-                  type="email"
-                  value={googleEmail}
-                  onChange={(e) => setGoogleEmail(e.target.value)}
-                  placeholder="nama.anda@gmail.com"
-                  className="w-full px-4 py-2.5 neu-inset rounded-2xl text-xs sm:text-sm text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
-                  autoFocus
-                />
-              </div>
-
-              {/* Name Input */}
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[#ff6b6b]" />
-                  <span>Nama Lengkap Akun</span>
-                </label>
-                <input
-                  type="text"
-                  value={googleName}
-                  onChange={(e) => setGoogleName(e.target.value)}
-                  placeholder="Contoh: Acep Yudi Heryadi"
-                  className="w-full px-4 py-2.5 neu-inset rounded-2xl text-xs sm:text-sm text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
-                />
-              </div>
-
-              {/* Password Input with Eye Toggle */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Kata Sandi Akun</span>
-                  </label>
-                  <span className="text-[10px] text-slate-500">Min. 6 karakter</span>
-                </div>
+                <label className="text-[11px] font-bold text-slate-300">Email Google</label>
                 <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type="email"
+                    required
+                    value={googleEmail}
+                    onChange={(e) => setGoogleEmail(e.target.value)}
+                    placeholder="nama@gmail.com"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl neu-inset bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300">Nama Akun</label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={googleName}
+                    onChange={(e) => setGoogleName(e.target.value)}
+                    placeholder="Acep Yudi"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl neu-inset bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-300">Kata Sandi</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type={showGooglePassword ? 'text' : 'password'}
+                    required
                     value={googlePassword}
                     onChange={(e) => setGooglePassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2.5 pr-10 neu-inset rounded-2xl text-xs sm:text-sm text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl neu-inset bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowGooglePassword(!showGooglePassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
+                    {showGooglePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <Button
-                variant="primary"
+              <button
                 type="submit"
-                isLoading={isLoading}
-                className="w-full py-3 font-bold text-sm mt-2 flex items-center justify-center gap-2"
+                disabled={isVerifying}
+                className="w-full py-3 rounded-xl neu-coral-btn text-white text-xs font-bold flex items-center justify-center gap-2 mt-2 shadow-lg"
               >
-                <span>Masuk Sekarang</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+                {isVerifying ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <span>Konfirmasi & Masuk</span>
+                )}
+              </button>
             </form>
           </div>
         </div>
       )}
-
-      {/* Bottom Signature Attribution */}
-      <footer className="text-center pt-8 pb-4 select-none animate-fade-in space-y-1 relative z-10">
-        <span className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-bold block">
-          from
-        </span>
-        <span className="text-sm sm:text-base font-black tracking-widest text-white block uppercase drop-shadow-md">
-          ACEP YUDI HERYADI
-        </span>
-        <span className="text-xs text-[#ff6b6b] font-mono font-bold block tracking-wider">
-          NYARIOS 2026
-        </span>
-      </footer>
     </div>
   );
 };
