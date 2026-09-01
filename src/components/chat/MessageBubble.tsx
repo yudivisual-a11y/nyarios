@@ -154,49 +154,35 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const handleDownloadMedia = async (src: string, defaultName: string) => {
+  const handleDownloadMedia = (src: string, defaultName: string) => {
     try {
       if (!src) return;
 
+      let downloadUrl = src;
+      let isBlobCreated = false;
+
       if (src.startsWith('data:')) {
         const blob = dataURLtoBlob(src);
-
-        // Try native Android Web Share API for direct gallery save
-        if (typeof navigator !== 'undefined' && navigator.canShare) {
-          try {
-            const file = new File([blob], defaultName, { type: blob.type });
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: defaultName,
-              });
-              return;
-            }
-          } catch {}
-        }
-
-        // Standard Blob URL download for Android Chrome & mobile web
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = defaultName;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      } else {
-        const link = document.createElement('a');
-        link.href = src;
-        link.download = defaultName;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadUrl = URL.createObjectURL(blob);
+        isBlobCreated = true;
       }
+
+      // Pure HTML5 download anchor without target="_blank" (prevents Android popup blocks)
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = defaultName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        try {
+          document.body.removeChild(link);
+          if (isBlobCreated) {
+            URL.revokeObjectURL(downloadUrl);
+          }
+        } catch {}
+      }, 3000);
     } catch (e) {
       console.warn('Download notice', e);
       try {
