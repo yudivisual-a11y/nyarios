@@ -148,7 +148,7 @@ export const StudioEditor: React.FC = () => {
                     <div className="flex items-center gap-3">
                        <span className="font-mono text-xs text-slate-400 w-4">{idx + 1}</span>
                        <div className="w-12 h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm rounded-sm shrink-0 flex items-center justify-center overflow-hidden p-1 text-[6px] text-left text-slate-300">
-                          {p.text.substring(0, 50)}...
+                          {project?.type === 'comic' ? (p.panels?.[0]?.dialogue?.substring(0,30) || 'Panel') : p.text?.substring(0, 50)}...
                        </div>
                     </div>
                  </button>
