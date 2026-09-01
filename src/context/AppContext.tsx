@@ -142,7 +142,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('nyarios_theme');
       if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
     return 'light';
   });

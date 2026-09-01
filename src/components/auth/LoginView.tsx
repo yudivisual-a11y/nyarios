@@ -221,11 +221,8 @@ export const LoginView: React.FC = () => {
             <ArrowRight className="w-5 h-5" />
           </button>
 
-          {/* Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>NYARIOS • 2026</span>
-          </div>
+          {/* Meta credit */}
+          <p className="text-[11px] text-slate-500 font-medium">From Acep Yudi Heryadi</p>
         </div>
       ) : (
       <>
@@ -638,6 +635,9 @@ export const LoginView: React.FC = () => {
 
       {/* Invisible reCAPTCHA container for Google Firebase Phone Auth */}
       <div id="recaptcha-container" />
+
+      {/* Footer meta credit */}
+      <p className="text-[11px] text-slate-400 text-center z-10 mt-2">From <span className="font-semibold">Acep Yudi Heryadi</span></p>
     </>
     )}
     </div>
