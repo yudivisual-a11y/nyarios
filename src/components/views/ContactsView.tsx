@@ -12,53 +12,57 @@ import {
   PhoneCall,
   Check,
   BookUser,
-  ShieldCheck,
+  AtSign,
+  Share2,
+  Copy,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
 import { sound } from '../../utils/sound';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 import { ContactPerson } from '../../types';
-import { getCloudDirectoryUsers, normalizePhoneNumber } from '../../utils/cloudSync';
+import { getCloudDirectoryUsers, normalizeUsername } from '../../utils/cloudSync';
 
 export const ContactsView: React.FC = () => {
   const {
     chats,
     setActiveChatId,
     setActiveNavTab,
-    createDirectChat,
+    createDirectChatWithUsername,
     startCall,
     currentUser,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [newContactUsername, setNewContactUsername] = useState('');
   const [newContactName, setNewContactName] = useState('');
-  const [newContactPhone, setNewContactPhone] = useState('');
   const [newContactBio, setNewContactBio] = useState('Menggunakan NYARIOS');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Cloud synced directory users
+  const myIdentifier = currentUser.username || currentUser.phone || currentUser.id;
   const [cloudUsers, setCloudUsers] = useState<ContactPerson[]>(() =>
-    getCloudDirectoryUsers(currentUser.phone)
+    getCloudDirectoryUsers(myIdentifier)
   );
 
   // Refresh cloud users on mount and interval
   useEffect(() => {
-    const refresh = () => setCloudUsers(getCloudDirectoryUsers(currentUser.phone));
+    const refresh = () => setCloudUsers(getCloudDirectoryUsers(myIdentifier));
     refresh();
     const interval = setInterval(refresh, 2000);
     return () => clearInterval(interval);
-  }, [currentUser.phone]);
+  }, [myIdentifier]);
 
   // Custom contacts list stored in state / synced from direct chats
   const [customContacts, setCustomContacts] = useState<ContactPerson[]>(() => {
-    // Derive initial contacts from existing direct chats
     const directChats = chats.filter((c) => !c.isGroup);
     return directChats.map((c) => ({
       id: c.id,
       name: c.name,
-      phone: c.phone || '+62 812-xxxx-xxxx',
+      username: c.username || `@${c.name.toLowerCase().replace(/\s+/g, '_')}`,
+      phone: c.phone,
       bio: c.bio || 'Ada di NYARIOS',
       avatar: c.avatar,
       isOnline: true,
@@ -67,6 +71,7 @@ export const ContactsView: React.FC = () => {
   });
 
   useHistoryBack(isAddModalOpen, () => setIsAddModalOpen(false), 'add_contact_modal');
+  useHistoryBack(isQrModalOpen, () => setIsQrModalOpen(false), 'qr_modal');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -75,306 +80,394 @@ export const ContactsView: React.FC = () => {
 
   const handleStartChatWithContact = (contact: ContactPerson) => {
     sound.playTap();
+    const cleanUser = contact.username ? normalizeUsername(contact.username) : '';
     const existingChat = chats.find(
-      (c) => normalizePhoneNumber(c.phone || '') === normalizePhoneNumber(contact.phone)
+      (c) =>
+        (cleanUser && c.username && normalizeUsername(c.username) === cleanUser) ||
+        c.id === contact.id
     );
+
     if (existingChat) {
       setActiveChatId(existingChat.id);
       setActiveNavTab('pesan');
     } else {
-      createDirectChat(contact.name, contact.phone || '+62 812-0000-0000');
+      createDirectChatWithUsername(contact.username || `@${contact.name.toLowerCase().replace(/\s+/g, '_')}`, contact.name);
       setActiveNavTab('pesan');
     }
   };
 
   const handleVoiceCall = (contact: ContactPerson) => {
     sound.playVoiceTone(800);
-    startCall(contact.name, contact.avatar, 'voice', contact.phone);
+    startCall(contact.name, contact.avatar, 'voice', contact.username || contact.phone);
   };
 
   const handleVideoCall = (contact: ContactPerson) => {
     sound.playVoiceTone(800);
-    startCall(contact.name, contact.avatar, 'video', contact.phone);
+    startCall(contact.name, contact.avatar, 'video', contact.username || contact.phone);
   };
 
   const handleAddNewContact = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newContactName.trim()) return;
+    const cleanUser = newContactUsername.replace(/^@+/, '').trim().toLowerCase();
+    if (!cleanUser) {
+      showToast('⚠ Masukkan username teman (contoh: @acepyudi)');
+      return;
+    }
 
-    const phoneFormatted = newContactPhone.trim() || '+62 812-0000-0000';
+    const formattedUsername = `@${cleanUser}`;
+    const displayName = newContactName.trim() || cleanUser;
+
     const newPerson: ContactPerson = {
       id: `contact_${Date.now()}`,
-      name: newContactName.trim(),
-      phone: phoneFormatted,
-      bio: newContactBio.trim() || 'Menggunakan NYARIOS',
+      name: displayName,
+      username: formattedUsername,
+      bio: newContactBio.trim() || 'Teman di NYARIOS',
       isOnline: true,
     };
 
     setCustomContacts((prev) => [newPerson, ...prev]);
-    createDirectChat(newPerson.name, newPerson.phone);
+    createDirectChatWithUsername(formattedUsername, displayName);
     sound.playMessageSent();
     setIsAddModalOpen(false);
+    setNewContactUsername('');
     setNewContactName('');
-    setNewContactPhone('');
-    showToast(`✓ Kontak "${newPerson.name}" berhasil disimpan!`);
+    showToast(`✓ Kontak "${displayName}" (@${cleanUser}) berhasil ditambahkan!`);
+  };
+
+  const handleCopyMyUsername = () => {
+    const textToCopy = currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      showToast(`✓ Username ${textToCopy} disalin ke clipboard!`);
+      sound.playTap();
+    }
   };
 
   const allContactsList = useMemo(() => {
     const map = new Map<string, ContactPerson>();
     cloudUsers.forEach((u) => {
-      map.set(normalizePhoneNumber(u.phone), u);
+      const key = u.username ? normalizeUsername(u.username) : u.id;
+      map.set(key, u);
     });
     customContacts.forEach((u) => {
-      map.set(normalizePhoneNumber(u.phone), u);
+      const key = u.username ? normalizeUsername(u.username) : u.id;
+      map.set(key, u);
     });
     return Array.from(map.values());
   }, [cloudUsers, customContacts]);
 
   const filteredContacts = allContactsList.filter((c) => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().replace(/^@+/, '');
+    const cUser = c.username ? normalizeUsername(c.username) : '';
     return (
       c.name.toLowerCase().includes(q) ||
-      c.phone.toLowerCase().includes(q) ||
+      cUser.includes(q) ||
       (c.bio && c.bio.toLowerCase().includes(q))
     );
   });
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#18191d] select-none overflow-y-auto">
+    <div className="flex-1 flex flex-col h-full bg-[#F8FAFC] dark:bg-[#0B141A] select-none overflow-hidden transition-colors">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-emerald-600/90 backdrop-blur-md text-white text-xs font-bold shadow-2xl animate-slide-up">
-          {toastMessage}
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl animate-fade-in flex items-center gap-2">
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Main Container */}
-      <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 pt-6 pb-24 md:pb-8 space-y-6">
-        {/* Top Header */}
-        <div className="flex items-center justify-between">
+      {/* Top Header Bar */}
+      <div className="p-4 sm:p-6 bg-white dark:bg-[#111B21] border-b border-gray-100 dark:border-white/5 shrink-0">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl neu-raised-circle text-[#ff4b4b] shadow-md">
-              <BookUser className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black shadow-sm">
+              <Users className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>Daftar Kontak</span>
+              <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                Buku Kontak & Teman
               </h1>
-              <p className="text-xs text-slate-400">
-                Semua teman, keluarga, dan rekan terhubung di NYARIOS
+              <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
+                Temukan & tambah teman via <span className="font-bold text-emerald-600">@username</span> bebas nomor HP
               </p>
             </div>
           </div>
 
-          {/* Action Button: Tambah Kontak */}
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2.5 rounded-2xl neu-coral-btn flex items-center gap-2 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#ff4b4b]/30"
-          >
-            <UserPlus className="w-4 h-4 font-bold" />
-            <span>Tambah Kontak</span>
-          </button>
+          {/* Quick Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsQrModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="ID & QR Code Saya"
+            >
+              <QrCode className="w-4 h-4 text-emerald-600" />
+              <span>ID Saya</span>
+            </button>
+
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ Tambah @Username</span>
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="max-w-4xl mx-auto mt-4 relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama atau nomor HP kontak..."
-            className="w-full pl-11 pr-4 py-3 rounded-2xl neu-inset bg-[#18191d] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b] transition-all"
+            placeholder="Cari teman via @username atau nama..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-[#1E293B] text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/5 focus:border-emerald-500 transition-all shadow-sm"
           />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
+      </div>
 
-        {/* Contacts List Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Semua Kontak ({filteredContacts.length})
-            </h3>
-          </div>
-
-          {filteredContacts.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-[#1e2025] neu-raised border border-white/5 text-center flex flex-col items-center justify-center space-y-3">
-              <div className="w-14 h-14 rounded-full neu-inset flex items-center justify-center text-slate-500 shadow-inner">
-                <Users className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-white">
-                  {searchQuery ? 'Kontak Tidak Ditemukan' : 'Belum Ada Kontak Tersimpan'}
-                </h4>
-                <p className="text-xs text-slate-400 max-w-xs">
-                  {searchQuery
-                    ? `Tidak ada kontak yang cocok dengan kata kunci "${searchQuery}"`
-                    : 'Tambahkan kontak teman pertama Anda untuk mulai mengobrol!'}
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {/* User's Own ID Card Banner */}
+          <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-100 dark:border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <Avatar name={currentUser.name} src={currentUser.avatar} size="md" />
+              <div>
+                <p className="text-[11px] text-emerald-800 dark:text-emerald-400 font-bold uppercase tracking-wider">
+                  Username Anda untuk dibagikan:
+                </p>
+                <p className="text-base font-black text-gray-900 dark:text-white font-mono">
+                  {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
                 </p>
               </div>
-              {!searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="px-4 py-2 rounded-2xl neu-coral-btn text-white text-xs font-bold shadow-lg shadow-[#ff4b4b]/30 flex items-center gap-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>Tambah Kontak Sekarang</span>
-                </button>
-              )}
             </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredContacts.map((contact) => (
+            <button
+              onClick={handleCopyMyUsername}
+              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>Salin Username</span>
+            </button>
+          </div>
+
+          {/* Contact List */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-slate-400 px-1">
+              <span>Semua Kontak ({filteredContacts.length})</span>
+              <span className="text-[10px] text-emerald-600 font-semibold">Terkoneksi Cloud</span>
+            </div>
+
+            {filteredContacts.length === 0 ? (
+              <div className="p-12 text-center rounded-3xl bg-white dark:bg-[#111B21] border border-gray-100 dark:border-white/5 space-y-3 shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 mx-auto flex items-center justify-center font-bold">
+                  <AtSign className="w-8 h-8" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  {searchQuery ? 'Kontak Tidak Ditemukan' : 'Belum Ada Teman Terdaftar'}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-slate-400 max-w-sm mx-auto">
+                  {searchQuery
+                    ? `Tidak ada teman dengan username "${searchQuery}". Klik tombol Tambah di atas untuk mulai chat!`
+                    : 'Ajak teman Anda bergabung dengan membagikan @username Anda, atau tambahkan @username teman di tombol atas!'}
+                </p>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="mt-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/25 hover:bg-emerald-700 transition-all cursor-pointer"
+                >
+                  + Tambah @Username Teman
+                </button>
+              </div>
+            ) : (
+              filteredContacts.map((contact) => (
                 <div
                   key={contact.id}
-                  className="p-3.5 rounded-2xl bg-[#1e2025] neu-raised border border-white/5 flex items-center justify-between hover:bg-[#24272e] transition-all group shadow-sm"
+                  className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#111B21] border border-gray-100 dark:border-white/5 hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all flex items-center justify-between gap-3 shadow-sm hover:shadow-md group"
                 >
-                  {/* Contact Info */}
+                  {/* Left: Avatar & Info */}
                   <div
-                    className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
                     onClick={() => handleStartChatWithContact(contact)}
+                    className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                   >
-                    <Avatar
-                      name={contact.name}
-                      src={contact.avatar}
-                      size="md"
-                      isOnline={contact.isOnline}
-                    />
-                    <div className="min-w-0">
-                      <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-[#ff6b6b] transition-colors truncate">
-                        {contact.name}
+                    <div className="relative shrink-0">
+                      <Avatar name={contact.name} src={contact.avatar} size="md" />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111B21]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate flex items-center gap-2">
+                        <span>{contact.name}</span>
+                        {contact.username && (
+                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                            {contact.username}
+                          </span>
+                        )}
                       </h4>
-                      <p className="text-[11px] text-slate-400 font-mono truncate">
-                        {contact.phone}
+                      <p className="text-xs text-gray-500 dark:text-slate-400 truncate mt-0.5">
+                        {contact.bio || 'Aktif di NYARIOS'}
                       </p>
-                      {contact.bio && (
-                        <p className="text-[10px] text-slate-500 truncate mt-0.5">
-                          {contact.bio}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    {/* Chat Button */}
+                  {/* Right: Actions */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
-                      type="button"
-                      onClick={() => handleStartChatWithContact(contact)}
-                      className="p-2.5 rounded-xl neu-raised text-slate-300 hover:text-[#ff4b4b] hover:scale-105 active:scale-95 transition-all"
-                      title="Kirim Pesan Chat"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </button>
-
-                    {/* Voice Call Button */}
-                    <button
-                      type="button"
                       onClick={() => handleVoiceCall(contact)}
-                      className="p-2.5 rounded-xl neu-raised text-slate-300 hover:text-emerald-400 hover:scale-105 active:scale-95 transition-all"
+                      className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-emerald-50 hover:text-emerald-600 text-gray-600 dark:text-slate-300 transition-all cursor-pointer"
                       title="Panggilan Suara"
                     >
                       <Phone className="w-4 h-4" />
                     </button>
 
-                    {/* Video Call Button */}
                     <button
-                      type="button"
                       onClick={() => handleVideoCall(contact)}
-                      className="p-2.5 rounded-xl neu-raised text-slate-300 hover:text-blue-400 hover:scale-105 active:scale-95 transition-all"
-                      title="Panggilan Video"
+                      className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-emerald-50 hover:text-emerald-600 text-gray-600 dark:text-slate-300 transition-all cursor-pointer"
+                      title="Panggilan Video HD"
                     >
                       <Video className="w-4 h-4" />
                     </button>
+
+                    <button
+                      onClick={() => handleStartChatWithContact(contact)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Kirim Pesan</span>
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      {/* MODAL: TAMBAH KONTAK BARU */}
+      {/* ============================================================ */}
+      {/* MODAL: TAMBAH KONTAK VIA @USERNAME */}
+      {/* ============================================================ */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 p-4 bg-black/80 backdrop-blur-md flex items-center justify-center select-none animate-fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-[#1e2025] neu-raised border border-white/10 p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg neu-coral-btn text-white">
-                  <UserPlus className="w-4 h-4" />
-                </div>
-                <h4 className="text-sm font-bold text-white">Tambah Kontak Baru</h4>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#1E293B] border border-gray-100 dark:border-white/10 p-6 space-y-5 shadow-2xl relative animate-slide-up">
+            <button
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-white/10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                <UserPlus className="w-6 h-6" />
               </div>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  Tambah Teman via @Username
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  Cukup ketik username teman untuk langsung terhubung
+                </p>
+              </div>
             </div>
 
-            <form onSubmit={handleAddNewContact} className="space-y-3.5">
+            <form onSubmit={handleAddNewContact} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-300">Nama Lengkap</label>
+                <label className="text-[11px] font-bold text-gray-700 dark:text-slate-300">
+                  Username Teman (@)
+                </label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3.5 text-gray-400 font-bold text-xs">@</span>
+                  <input
+                    type="text"
+                    required
+                    value={newContactUsername.replace(/^@+/, '')}
+                    onChange={(e) =>
+                      setNewContactUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))
+                    }
+                    placeholder="contoh_username"
+                    className="w-full pl-8 pr-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/10 focus:border-emerald-500 font-mono font-bold shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-gray-700 dark:text-slate-300">
+                  Nama Tampilan Kontak (Opsional)
+                </label>
                 <input
                   type="text"
-                  required
                   value={newContactName}
                   onChange={(e) => setNewContactName(e.target.value)}
-                  placeholder="Contoh: Rian Pratama"
-                  className="w-full px-4 py-2.5 rounded-xl neu-inset bg-[#18191d] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
+                  placeholder="Misal: Acep Yudi"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/10 focus:border-emerald-500 shadow-sm"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-300">Nomor HP</label>
-                <input
-                  type="tel"
-                  value={newContactPhone}
-                  onChange={(e) => setNewContactPhone(e.target.value)}
-                  placeholder="Contoh: +62 812-3456-7890"
-                  className="w-full px-4 py-2.5 rounded-xl neu-inset bg-[#18191d] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-300">Info / Bio (Opsional)</label>
+                <label className="text-[11px] font-bold text-gray-700 dark:text-slate-300">
+                  Catatan / Status Kontak
+                </label>
                 <input
                   type="text"
                   value={newContactBio}
                   onChange={(e) => setNewContactBio(e.target.value)}
-                  placeholder="Menggunakan NYARIOS"
-                  className="w-full px-4 py-2.5 rounded-xl neu-inset bg-[#18191d] text-xs text-white placeholder:text-slate-500 outline-none border border-white/5 focus:border-[#ff4b4b]"
+                  placeholder="Misal: Teman kantor / Teman kuliah"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/10 focus:border-emerald-500 shadow-sm"
                 />
               </div>
 
-              <div className="pt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl neu-raised text-xs font-bold text-slate-400 hover:text-white"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl neu-coral-btn text-xs font-bold text-white shadow-md"
-                >
-                  Simpan Kontak
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer mt-2"
+              >
+                <Check className="w-4 h-4" />
+                <span>Simpan & Buka Obrolan</span>
+              </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: ID & QR CODE SAYA */}
+      {/* ============================================================ */}
+      {isQrModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#1E293B] border border-gray-100 dark:border-white/10 p-6 space-y-4 shadow-2xl relative text-center animate-slide-up">
+            <button
+              onClick={() => setIsQrModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-white/10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-emerald-100 shadow-md mx-auto bg-white p-0.5">
+              <img src="/logo-nyarios.jpg" alt="NYARIOS" className="w-full h-full object-cover rounded-2xl" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-gray-900 dark:text-white">
+                {currentUser.name}
+              </h3>
+              <p className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
+              </p>
+            </div>
+
+            {/* QR Mockup */}
+            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 inline-block mx-auto shadow-inner">
+              <QrCode className="w-36 h-36 text-gray-800 dark:text-white mx-auto" />
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-slate-400">
+              Minta teman Anda untuk menambahkan username di atas pada aplikasi NYARIOS mereka.
+            </p>
+
+            <button
+              onClick={handleCopyMyUsername}
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25 cursor-pointer"
+            >
+              <Copy className="w-4 h-4" />
+              <span>Salin ID Username</span>
+            </button>
           </div>
         </div>
       )}

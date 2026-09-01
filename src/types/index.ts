@@ -129,6 +129,7 @@ export interface Chat {
   id: string;
   isGroup: boolean;
   name: string;
+  username?: string;
   avatar?: string;
   phone?: string;
   bio?: string;
@@ -182,6 +183,7 @@ export interface CallRecord {
   contactName: string;
   contactAvatar?: string;
   contactPhone?: string;
+  contactUsername?: string;
   type: 'voice' | 'video';
   direction: 'incoming' | 'outgoing' | 'missed';
   duration?: string; // e.g. "04:12"
@@ -193,6 +195,7 @@ export interface ActiveCallState {
   isActive: boolean;
   contactName: string;
   contactAvatar?: string;
+  contactUsername?: string;
   type: 'voice' | 'video';
   isMuted: boolean;
   isVideoOff: boolean;
@@ -212,7 +215,8 @@ export interface ChatFolder {
 export interface ContactPerson {
   id: string;
   name: string;
-  phone: string;
+  username?: string;
+  phone?: string;
   bio?: string;
   avatar?: string;
   isOnline?: boolean;

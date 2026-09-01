@@ -207,9 +207,16 @@ export const ProfileSettingsView: React.FC = () => {
                 {bio || 'Menggunakan NYARIOS'}
               </p>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
-                <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#18191d] text-[#ff6b6b] border border-white/5 font-semibold">
-                  {currentUser.phone || '+62 812-3456-7890'}
-                </span>
+                {currentUser.username && (
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
+                    {currentUser.username}
+                  </span>
+                )}
+                {currentUser.phone && (
+                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[#18191d] text-slate-400 border border-white/5 font-semibold">
+                    {currentUser.phone}
+                  </span>
+                )}
                 {currentUser.email && (
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#18191d] text-slate-400 border border-white/5">
                     {currentUser.email}

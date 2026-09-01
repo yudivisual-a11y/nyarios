@@ -30,17 +30,19 @@ import {
 export interface CurrentUserData {
   id: string;
   name: string;
+  username?: string;
   bio: string;
   avatar?: string;
-  phone: string;
+  phone?: string;
   email?: string;
 }
 
 interface AppContextType {
   // Authentication
   isLoggedIn: boolean;
+  loginWithUsername: (username: string, name?: string, email?: string, password?: string) => void;
   loginWithPhone: (phone: string, name?: string) => void;
-  loginWithGoogle: (email: string, name: string, avatar?: string) => void;
+  loginWithGoogle: (email: string, name: string, avatar?: string, username?: string) => void;
   logout: () => void;
 
   // Current user info
@@ -72,6 +74,7 @@ interface AppContextType {
 
   // Chat Actions
   createDirectChat: (name: string, phone: string, initialMessage?: string) => string;
+  createDirectChatWithUsername: (username: string, name?: string, initialMessage?: string) => string;
   createGroupChat: (name: string, members: string[], category?: 'Informasi' | 'Diskusi' | 'Kegiatan' | 'Umum', description?: string) => string;
   togglePinChat: (chatId: string) => void;
   toggleMuteChat: (chatId: string) => void;
@@ -446,10 +449,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Real-time Cloud Synchronization Listener
   useEffect(() => {
-    if (!currentUser?.phone || !isLoggedIn) return;
+    const myIdentifier = currentUser?.username || currentUser?.phone || currentUser?.id;
+    if (!myIdentifier || !isLoggedIn) return;
     registerUserOnCloud(currentUser);
 
-    const unsubscribe = subscribeToCloudEvents(currentUser.phone, {
+    const unsubscribe = subscribeToCloudEvents(myIdentifier, {
       onMessage: (payload) => {
         const timeStr = new Date(payload.timestamp).toLocaleTimeString('id-ID', {
           hour: '2-digit',
@@ -457,9 +461,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
 
         setChats((prevChats) => {
-          const existing = prevChats.find(
-            (c) => normalizePhoneNumber(c.phone || '') === normalizePhoneNumber(payload.senderPhone)
-          );
+          const existing = prevChats.find((c) => {
+            if (payload.senderUsername && c.username) {
+              return c.username.toLowerCase() === payload.senderUsername.toLowerCase();
+            }
+            if (payload.senderPhone && c.phone) {
+              return normalizePhoneNumber(c.phone) === normalizePhoneNumber(payload.senderPhone);
+            }
+            return false;
+          });
           const chatId = existing ? existing.id : `chat_${Date.now()}`;
 
           const incomingMsg: Message = {
@@ -500,9 +510,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               id: chatId,
               isGroup: false,
               name: payload.senderName,
+              username: payload.senderUsername,
               phone: payload.senderPhone,
               avatar: payload.senderAvatar,
-              bio: 'Kontak NYARIOS Terhubung',
+              bio: 'Teman di NYARIOS',
               unreadCount: activeChatId === chatId ? 0 : 1,
               isPinned: false,
               isMuted: false,
@@ -537,7 +548,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
 
     return () => unsubscribe();
-  }, [currentUser?.phone, isLoggedIn, activeChatId]);
+  }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn, activeChatId]);
 
   // Active call timer
   useEffect(() => {
@@ -637,6 +648,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const loginWithUsername = (username: string, name?: string, email?: string, password?: string) => {
+    const cleanUser = username.replace(/^@+/, '').trim().toLowerCase();
+    const userId = `user_${cleanUser}`;
+    const newUser: CurrentUserData = {
+      id: userId,
+      name: name?.trim() || cleanUser,
+      username: `@${cleanUser}`,
+      bio: 'Menggunakan NYARIOS',
+      avatar: '',
+      email: email?.trim() || `${cleanUser}@nyarios.app`,
+      phone: '',
+    };
+
+    setCurrentUser(newUser);
+    restoreUserData(userId);
+    registerUserOnCloud(newUser);
+    setIsLoggedIn(true);
+    localStorage.setItem('nyarios_is_logged_in', 'true');
+    localStorage.setItem('nyarios_user', JSON.stringify(newUser));
+  };
+
   const loginWithPhone = (phone: string, name?: string) => {
     const normalized = normalizePhoneNumber(phone);
     const digits = normalized.replace(/\D/g, '');
@@ -644,6 +676,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newUser: CurrentUserData = {
       id: userId,
       name: name?.trim() || 'Pengguna NYARIOS',
+      username: `@user${digits.slice(-4)}`,
       bio: 'Menggunakan NYARIOS',
       avatar: '',
       phone: normalized,
@@ -657,14 +690,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('nyarios_user', JSON.stringify(newUser));
   };
 
-  const loginWithGoogle = (email: string, name: string, avatar?: string) => {
+  const loginWithGoogle = (email: string, name: string, avatar?: string, username?: string) => {
     const cleanId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const baseUser = username || email.split('@')[0];
+    const cleanUser = baseUser.replace(/^@+/, '').toLowerCase();
     const newUser: CurrentUserData = {
       id: cleanId,
       name: name.trim() || 'Pengguna Google',
+      username: `@${cleanUser}`,
       bio: email,
       avatar: avatar || '',
-      phone: '+62 812-0000-0000',
       email,
     };
     setCurrentUser(newUser);
@@ -682,6 +717,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser({
       id: '',
       name: '',
+      username: '',
       bio: '',
       avatar: '',
       phone: '',
@@ -703,6 +739,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!activeChatId) return [];
     return messages[activeChatId] || [];
   }, [messages, activeChatId]);
+
+  // Create direct chat via Username (@username)
+  const createDirectChatWithUsername = (username: string, name?: string, initialMessage?: string): string => {
+    const cleanUser = username.startsWith('@') ? username : `@${username}`;
+    const existing = chats.find(c => c.username && c.username.toLowerCase() === cleanUser.toLowerCase());
+    if (existing) {
+      setActiveChatId(existing.id);
+      setActiveNavTab('pesan');
+      if (initialMessage && initialMessage.trim()) {
+        sendMessage(existing.id, initialMessage.trim());
+      }
+      return existing.id;
+    }
+
+    const newChatId = `chat_${Date.now()}`;
+    const newChat: Chat = {
+      id: newChatId,
+      isGroup: false,
+      name: name || cleanUser,
+      username: cleanUser,
+      bio: 'Teman di NYARIOS',
+      unreadCount: 0,
+      isPinned: false,
+      isMuted: false,
+      isArchived: false,
+      folderIds: [],
+    };
+
+    setChats(prev => [newChat, ...prev]);
+    setActiveChatId(newChatId);
+    setActiveNavTab('pesan');
+
+    if (initialMessage && initialMessage.trim()) {
+      sendMessage(newChatId, initialMessage.trim());
+    }
+
+    return newChatId;
+  };
 
   // Create direct chat
   const createDirectChat = (name: string, phone: string, initialMessage?: string): string => {
@@ -1170,15 +1244,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       durationSeconds: 0,
     });
 
-    const phoneToCall = contactPhone || activeChat?.phone;
-    if (phoneToCall) {
-      sendCloudCallSignal(currentUser, phoneToCall, type);
+    const identityToCall = contactPhone || activeChat?.username || activeChat?.phone;
+    if (identityToCall) {
+      sendCloudCallSignal(currentUser, identityToCall, type);
     }
   };
 
   const acceptIncomingCall = () => {
     if (!incomingCall) return;
-    respondToCloudCallSignal(incomingCall.callerPhone, incomingCall.callId, 'accepted');
+    const callerIdentity = incomingCall.callerUsername || incomingCall.callerPhone || incomingCall.callerId;
+    respondToCloudCallSignal(callerIdentity, incomingCall.callId, 'accepted');
     setActiveCall({
       isActive: true,
       contactName: incomingCall.callerName,
@@ -1195,7 +1270,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const declineIncomingCall = () => {
     if (!incomingCall) return;
-    respondToCloudCallSignal(incomingCall.callerPhone, incomingCall.callId, 'declined');
+    const callerIdentity = incomingCall.callerUsername || incomingCall.callerPhone || incomingCall.callerId;
+    respondToCloudCallSignal(callerIdentity, incomingCall.callId, 'declined');
     setIncomingCall(null);
   };
 
@@ -1330,6 +1406,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider
       value={{
         isLoggedIn,
+        loginWithUsername,
         loginWithPhone,
         loginWithGoogle,
         logout,
@@ -1355,6 +1432,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         activeFolderId,
         setActiveFolderId,
         createDirectChat,
+        createDirectChatWithUsername,
         createGroupChat,
         togglePinChat,
         toggleMuteChat,
