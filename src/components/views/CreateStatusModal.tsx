@@ -192,7 +192,7 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
             }`}
           >
             <VideoIcon className="w-3.5 h-3.5" />
-            <span>Video 2M</span>
+            <span>Video</span>
           </button>
         </div>
 

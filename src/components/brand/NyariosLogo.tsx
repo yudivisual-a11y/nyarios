@@ -43,12 +43,12 @@ export const NyariosLogo: React.FC<NyariosLogoProps> = ({
   if (variant === 'icon') {
     return (
       <div
-        className={`relative inline-flex items-center justify-center rounded-2xl bg-white p-1 shadow-sm border border-white/10 shrink-0 overflow-hidden ${iconDimensions[size]} ${className}`}
+        className={`relative inline-flex items-center justify-center rounded-2xl bg-white p-0.5 shadow-md border border-gray-100 shrink-0 overflow-hidden ${iconDimensions[size]} ${className}`}
       >
         <img
-          src="/nyarios-logo.png"
+          src="/logo-nyarios.jpg"
           alt="NYARIOS"
-          className="w-full h-full object-cover object-top scale-125"
+          className="w-full h-full object-cover rounded-xl"
         />
       </div>
     );
@@ -58,11 +58,11 @@ export const NyariosLogo: React.FC<NyariosLogoProps> = ({
   if (variant === 'wordmark') {
     return (
       <div className={`flex flex-col ${className}`}>
-        <span className={`bg-gradient-to-r from-white via-teal-300 to-emerald-400 bg-clip-text text-transparent ${textSizes[size]}`}>
+        <span className={`bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 bg-clip-text text-transparent font-black ${textSizes[size]}`}>
           NYARIOS
         </span>
         {withTagline && (
-          <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
+          <span className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold tracking-wider uppercase">
             Aplikasi Percakapan Anda
           </span>
         )}
@@ -74,20 +74,20 @@ export const NyariosLogo: React.FC<NyariosLogoProps> = ({
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <div
-        className={`relative flex items-center justify-center rounded-2xl bg-white p-1 shadow-sm border border-white/10 shrink-0 overflow-hidden ${iconDimensions[size]}`}
+        className={`relative flex items-center justify-center rounded-2xl bg-white p-0.5 shadow-md border border-gray-100 shrink-0 overflow-hidden ${iconDimensions[size]}`}
       >
         <img
-          src="/nyarios-logo.png"
+          src="/logo-nyarios.jpg"
           alt="NYARIOS"
-          className="w-full h-full object-cover object-top scale-125"
+          className="w-full h-full object-cover rounded-xl"
         />
       </div>
       <div className="flex flex-col min-w-0">
-        <span className={`bg-gradient-to-r from-white via-teal-300 to-emerald-400 bg-clip-text text-transparent font-black tracking-tight leading-none ${textSizes[size]}`}>
+        <span className={`bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 bg-clip-text text-transparent font-black tracking-tight leading-none ${textSizes[size]}`}>
           NYARIOS
         </span>
         {withTagline && (
-          <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">
+          <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-slate-400 font-bold tracking-wider uppercase mt-1">
             Aplikasi Percakapan Anda
           </span>
         )}
