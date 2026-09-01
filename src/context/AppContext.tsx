@@ -31,6 +31,7 @@ import {
   broadcastDeleteStatus,
   broadcastStatusQuery,
   broadcastUserPresence,
+  broadcastPresenceQuery,
   getCloudDirectoryUsers,
   getCloudActiveStatuses,
 } from '../utils/cloudSync';
@@ -765,6 +766,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           );
         }
       },
+      onPresenceQuery: (requesterId) => {
+        if (requesterId !== currentUser?.id) {
+          broadcastUserPresence(currentUser);
+        }
+      },
       onStatusStory: (incomingStatus) => {
         const fullStory = incomingStatus as StatusStory;
         saveStatusToDb(fullStory);
@@ -793,6 +799,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const queryTimer = setTimeout(() => {
       broadcastStatusQuery(currentUser);
       broadcastUserPresence(currentUser);
+      broadcastPresenceQuery(currentUser);
     }, 300);
 
     return () => {
@@ -819,6 +826,66 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     });
   }, [currentUser?.id]);
+
+  // Auto-resolve missing chat avatars from statuses, contacts, or directory
+  useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
+
+    setChats((prevChats) => {
+      let changed = false;
+      const updated = prevChats.map((c) => {
+        if (c.isGroup || (c.avatar && c.avatar.trim())) return c;
+
+        const cleanCUser = c.username ? normalizeUsername(c.username) : '';
+        const cleanCName = c.name ? normalizeUsername(c.name) : '';
+
+        // 1. Check in statuses
+        const foundInStatus = statuses.find(
+          (s) =>
+            s.userAvatar &&
+            s.userAvatar.trim() &&
+            (s.userId === c.id ||
+              (cleanCUser && normalizeUsername(s.userName) === cleanCUser) ||
+              (cleanCName && normalizeUsername(s.userName) === cleanCName))
+        );
+        if (foundInStatus?.userAvatar) {
+          changed = true;
+          return { ...c, avatar: foundInStatus.userAvatar };
+        }
+
+        // 2. Check in contacts
+        const foundInContact = contacts.find(
+          (ct) =>
+            ct.avatar &&
+            ct.avatar.trim() &&
+            ((cleanCUser && ct.username && normalizeUsername(ct.username) === cleanCUser) ||
+              (cleanCName && normalizeUsername(ct.name) === cleanCName))
+        );
+        if (foundInContact?.avatar) {
+          changed = true;
+          return { ...c, avatar: foundInContact.avatar };
+        }
+
+        // 3. Check in cloud directory
+        const dirUsers = getCloudDirectoryUsers(currentUser.username || currentUser.name);
+        const foundInDir = dirUsers.find(
+          (u) =>
+            u.avatar &&
+            u.avatar.trim() &&
+            ((cleanCUser && u.username && normalizeUsername(u.username) === cleanCUser) ||
+              (cleanCName && normalizeUsername(u.name) === cleanCName))
+        );
+        if (foundInDir?.avatar) {
+          changed = true;
+          return { ...c, avatar: foundInDir.avatar };
+        }
+
+        return c;
+      });
+
+      return changed ? updated : prevChats;
+    });
+  }, [statuses, contacts, isLoggedIn, currentUser?.id]);
 
   // Active call timer
   useEffect(() => {

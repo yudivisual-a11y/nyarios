@@ -272,6 +272,39 @@ export async function registerUserOnCloud(user: CurrentUserData) {
 export const broadcastUserPresence = registerUserOnCloud;
 
 /**
+ * Sends a query requesting all online peers to re-broadcast their presence and profile photo
+ */
+export async function broadcastPresenceQuery(sender: CurrentUserData) {
+  if (typeof window === 'undefined') return;
+  const cleanSender = normalizeUsername(sender.username || sender.name);
+
+  // Local mesh
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({
+      type: 'PRESENCE_QUERY',
+      requesterId: sender.id,
+      requesterName: sender.name,
+    });
+  }
+
+  // MQTT
+  const client = getOrCreateMqttClient(cleanSender);
+  const payload = JSON.stringify({
+    type: 'PRESENCE_QUERY',
+    requesterId: sender.id,
+    requesterName: sender.name,
+  });
+
+  if (client.connected) {
+    client.publish(`${TOPIC_PREFIX}/directory`, payload, { qos: 1 });
+  } else {
+    client.once('connect', () => {
+      client.publish(`${TOPIC_PREFIX}/directory`, payload, { qos: 1 });
+    });
+  }
+}
+
+/**
  * Retrieves all registered users from the cloud directory excluding current user
  */
 export function getCloudDirectoryUsers(myIdentifier: string): ContactPerson[] {
@@ -635,6 +668,7 @@ export function subscribeToCloudEvents(
     onIncomingCall: (signal: IncomingCallSignal) => void;
     onCallResponse: (callId: string, status: string) => void;
     onUserPresence: (user: ContactPerson) => void;
+    onPresenceQuery?: (requesterId: string) => void;
     onStatusStory?: (status: CloudStatusPayload) => void;
     onStatusDeleted?: (statusId: string) => void;
     onStatusQuery?: (requesterId: string) => void;
@@ -742,6 +776,10 @@ export function subscribeToCloudEvents(
         handlers.onCallResponse(data.callId, data.status);
       } else if (type === 'USER_PRESENCE' && data?.user) {
         handlers.onUserPresence(data.user);
+      } else if (type === 'PRESENCE_QUERY') {
+        if (handlers.onPresenceQuery) {
+          handlers.onPresenceQuery(data?.requesterId || '');
+        }
       } else if (type === 'STATUS_STORY' && data?.payload) {
         if (handlers.onStatusStory) {
           handlers.onStatusStory(data.payload);
@@ -812,8 +850,8 @@ export function subscribeToCloudEvents(
           handleIncomingPayload('CALL_RESPONSE', data);
         }
       } else if (topic === dirTopic || topic.endsWith('/directory')) {
-        if (data.type === 'USER_PRESENCE') {
-          handleIncomingPayload('USER_PRESENCE', data);
+        if (data.type === 'USER_PRESENCE' || data.type === 'PRESENCE_QUERY') {
+          handleIncomingPayload(data.type, data);
         }
       } else if (topic === STATUS_BROADCAST_TOPIC || topic.includes('/statuses')) {
         if (
