@@ -38,7 +38,7 @@ export interface CloudMessagePayload {
 const CLOUD_STORAGE_USERS_KEY = 'nyarios_cloud_directory_v2';
 const PRIMARY_MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 const TOPIC_PREFIX = 'nyarios_2026';
-const CHUNK_SIZE = 28 * 1024; // 28KB per chunk
+const CHUNK_SIZE = 180 * 1024; // 180KB per packet for atomic instant photo/audio transmission
 
 // Global shared MQTT client singleton
 let sharedMqttClient: MqttClient | null = null;
@@ -323,10 +323,10 @@ export async function sendCloudRealtimeMessage(
   };
 
   if (stringified.length <= CHUNK_SIZE) {
-    // Fits in a single packet
+    // Fits in a single atomic packet (All photos, voice notes, audio, and text)
     publishToTopic(targetMsgTopic, stringified);
   } else {
-    // Large payload (Photo HD / Video / Audio / Document) -> Send in numbered chunks
+    // Large payload (e.g. video files > 180KB) -> Send in numbered sequential chunks with ACK
     const totalChunks = Math.ceil(stringified.length / CHUNK_SIZE);
     const chunkMsgId = payload.id;
 
@@ -340,7 +340,19 @@ export async function sendCloudRealtimeMessage(
         chunkData,
       });
 
-      publishToTopic(targetMsgTopic, chunkPayload);
+      await new Promise<void>((resolve) => {
+        if (client.connected) {
+          client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
+            setTimeout(resolve, 20);
+          });
+        } else {
+          client.once('connect', () => {
+            client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
+              setTimeout(resolve, 20);
+            });
+          });
+        }
+      });
     }
   }
 }
