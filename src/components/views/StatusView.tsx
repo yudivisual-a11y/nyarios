@@ -66,21 +66,28 @@ export const StatusView: React.FC = () => {
           </button>
         </div>
 
-        {/* Section: Status Saya (WhatsApp Box Card) */}
+        {/* Section: Grid Status WhatsApp (Status Saya + Status Kontak Berjajar) */}
         <div className="space-y-3">
-          <h3 className="text-xs font-extrabold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider">
-            Status Saya
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-extrabold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider">
+              Status & Cerita ({myStatuses.length > 0 ? 'Status Saya' : ''}{myStatuses.length > 0 && contactStatuses.length > 0 ? ' + ' : ''}{contactStatuses.length > 0 ? `${contactStatuses.length} Kontak` : ''})
+            </h3>
+            {contactStatuses.length > 0 && (
+              <span className="text-[11px] font-semibold text-[var(--color-accent-primary,#ff4b4b)]">
+                Ketuk kotak untuk menonton
+              </span>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-            {/* Card Status Saya */}
+            {/* 1. KARTU STATUS SAYA (SLOT PERTAMA) */}
             <div
               onClick={handleOpenMyStatus}
               className="relative aspect-[9/14] rounded-3xl overflow-hidden cursor-pointer group neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] hover:border-[var(--color-accent-primary,#ff4b4b)]/50 transition-all shadow-md active:scale-95"
             >
               {latestMyStatus ? (
                 <>
-                  {/* Background Thumbnail */}
+                  {/* Background Thumbnail Status Saya */}
                   {latestMyStatus.type === 'image' && (
                     <img
                       src={latestMyStatus.content}
@@ -151,7 +158,7 @@ export const StatusView: React.FC = () => {
                       <Plus className="w-5 h-5" />
                     </div>
                     <p className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
-                      Buat Cerita
+                      Status Saya
                     </p>
                     <p className="text-[10px] text-[var(--text-secondary,#94a3b8)]">
                       Bagikan foto/teks
@@ -164,121 +171,85 @@ export const StatusView: React.FC = () => {
               )}
             </div>
 
-            {/* Quick Action: Tambah Status Lain jika sudah ada status */}
-            {myStatuses.length > 0 && (
-              <div
-                onClick={() => setIsCreateModalOpen(true)}
-                className="aspect-[9/14] rounded-3xl p-4 flex flex-col items-center justify-between text-center bg-[var(--bg-surface,#1e2025)] neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] hover:border-[var(--color-accent-primary,#ff4b4b)]/40 transition-all cursor-pointer group active:scale-95"
-              >
-                <div className="w-full flex justify-start">
-                  <Camera className="w-4 h-4 text-[var(--color-accent-primary,#ff4b4b)]" />
-                </div>
-                <div className="space-y-1 my-auto">
-                  <div className="w-10 h-10 rounded-full neu-raised text-[var(--color-accent-primary,#ff4b4b)] mx-auto flex items-center justify-center font-bold group-hover:scale-110 transition-transform">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <p className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
-                    Tambah Lagi
-                  </p>
-                  <p className="text-[10px] text-[var(--text-secondary,#94a3b8)]">
-                    Cerita baru
-                  </p>
-                </div>
-                <span className="w-full py-1.5 rounded-xl neu-raised text-[var(--text-primary,#f8fafc)] text-[10px] font-bold">
-                  + Buat Baru
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
+            {/* 2. KARTU-KARTU STATUS KONTAK LAIN (BERJAJAR LANGSUNG DI SAMPING STATUS SAYA) */}
+            {contactStatuses.map((st, idx) => {
+              const isViewed = st.viewers && st.viewers.includes(currentUser.name);
 
-        {/* Section: Pembaruan Terkini Dari Kontak (WhatsApp Thumbnail Box Grid) */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-extrabold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider">
-              Pembaruan Terkini Kontak ({contactStatuses.length})
-            </h3>
-            {contactStatuses.length > 0 && (
-              <span className="text-[11px] font-semibold text-[var(--color-accent-primary,#ff4b4b)]">
-                Ketuk kotak untuk menonton
-              </span>
-            )}
-          </div>
-
-          {contactStatuses.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center p-6 neu-flat bg-[var(--bg-surface,#1e2025)] rounded-3xl border border-[var(--border-color,rgba(255,255,255,0.05))] space-y-2">
-              <CircleDot className="w-10 h-10 text-[var(--text-secondary,#94a3b8)] opacity-40 mb-1" />
-              <h4 className="text-sm font-bold text-[var(--text-primary,#f8fafc)]">
-                Belum ada status dari kontak
-              </h4>
-              <p className="text-xs text-[var(--text-secondary,#94a3b8)] max-w-sm">
-                Ketika kontak atau teman Anda memposting status, kotak preview thumbnail akan muncul secara otomatis di sini.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-              {contactStatuses.map((st, idx) => {
-                const isViewed = st.viewers && st.viewers.includes(currentUser.name);
-
-                return (
-                  <div
-                    key={st.id}
-                    onClick={() => handleOpenContactStatus(idx)}
-                    className={`relative aspect-[9/14] rounded-3xl overflow-hidden cursor-pointer group neu-raised border transition-all shadow-md hover:scale-[1.02] active:scale-95 ${
-                      !isViewed
-                        ? 'border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/20'
-                        : 'border-[var(--border-color,rgba(255,255,255,0.06))] opacity-80'
-                    }`}
-                  >
-                    {/* Background Content */}
-                    {st.type === 'image' && (
-                      <img
-                        src={st.content}
-                        alt={st.userName}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    )}
-                    {st.type === 'video' && (
-                      <div className="w-full h-full relative bg-black flex items-center justify-center">
-                        <video src={st.content} className="w-full h-full object-cover opacity-80" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/20">
-                            <Play className="w-5 h-5 fill-current ml-0.5" />
-                          </div>
+              return (
+                <div
+                  key={st.id}
+                  onClick={() => handleOpenContactStatus(idx)}
+                  className={`relative aspect-[9/14] rounded-3xl overflow-hidden cursor-pointer group neu-raised border transition-all shadow-md hover:scale-[1.02] active:scale-95 ${
+                    !isViewed
+                      ? 'border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/20'
+                      : 'border-[var(--border-color,rgba(255,255,255,0.06))] opacity-80'
+                  }`}
+                >
+                  {/* Background Content */}
+                  {st.type === 'image' && (
+                    <img
+                      src={st.content}
+                      alt={st.userName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
+                  {st.type === 'video' && (
+                    <div className="w-full h-full relative bg-black flex items-center justify-center">
+                      <video src={st.content} className="w-full h-full object-cover opacity-80" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/20">
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
                         </div>
                       </div>
-                    )}
-                    {st.type === 'text' && (
-                      <div
-                        className="w-full h-full p-4 flex items-center justify-center text-center font-bold text-white text-xs leading-relaxed"
-                        style={{ backgroundColor: st.bgColor || '#ff4b4b' }}
-                      >
-                        <p className="line-clamp-4">{st.content}</p>
-                      </div>
-                    )}
-
-                    {/* Top Left Contact Avatar */}
-                    <div className="absolute top-3 left-3 z-10">
-                      <div className="relative">
-                        <Avatar name={st.userName} src={st.userAvatar} size="sm" />
-                        {!isViewed && (
-                          <span className="absolute -inset-0.5 rounded-full border-2 border-[var(--color-accent-primary,#ff4b4b)]" />
-                        )}
-                      </div>
                     </div>
+                  )}
+                  {st.type === 'text' && (
+                    <div
+                      className="w-full h-full p-4 flex items-center justify-center text-center font-bold text-white text-xs leading-relaxed"
+                      style={{ backgroundColor: st.bgColor || '#ff4b4b' }}
+                    >
+                      <p className="line-clamp-4">{st.content}</p>
+                    </div>
+                  )}
 
-                    {/* Bottom Gradient Overlay with Name & Time */}
-                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 flex flex-col justify-end">
-                      <span className="text-xs font-bold text-white truncate drop-shadow-md">
-                        {st.userName}
-                      </span>
-                      <span className="text-[10px] text-slate-300 drop-shadow-sm">
-                        {st.timestamp} {st.caption ? `• ${st.caption}` : ''}
-                      </span>
+                  {/* Top Left Contact Avatar */}
+                  <div className="absolute top-3 left-3 z-10">
+                    <div className="relative">
+                      <Avatar name={st.userName} src={st.userAvatar} size="sm" />
+                      {!isViewed && (
+                        <span className="absolute -inset-0.5 rounded-full border-2 border-[var(--color-accent-primary,#ff4b4b)]" />
+                      )}
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Bottom Gradient Overlay with Name & Time */}
+                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 flex flex-col justify-end">
+                    <span className="text-xs font-bold text-white truncate drop-shadow-md">
+                      {st.userName}
+                    </span>
+                    <span className="text-[10px] text-slate-300 drop-shadow-sm">
+                      {st.timestamp} {st.caption ? `• ${st.caption}` : ''}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Empty state notice if no contact statuses yet */}
+          {contactStatuses.length === 0 && (
+            <div className="p-6 rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.05))] flex items-center gap-3.5 mt-2 shadow-sm">
+              <div className="w-10 h-10 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] flex items-center justify-center shrink-0">
+                <CircleDot className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-[var(--text-primary,#f8fafc)]">
+                  Belum ada status dari kontak teman
+                </h4>
+                <p className="text-[11px] text-[var(--text-secondary,#94a3b8)]">
+                  Ketika kontak atau teman Anda memposting status, kotak preview thumbnail akan muncul berjajar di samping status Anda.
+                </p>
+              </div>
             </div>
           )}
         </div>
