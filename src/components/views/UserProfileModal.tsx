@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, PlaySquare, Settings, Edit3 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ContentPost } from '../../types';
-import { getAllContentPosts, updateContentPost, deleteContentPost } from '../../utils/contentDb';
-import { broadcastDeleteContentPost, broadcastContentPost } from '../../utils/cloudSync';
+import { SocialPost, SocialMedia } from '../../types';
+import { getUserPosts } from '../../utils/socialDb';
+import { broadcastSocialInteraction } from '../../utils/cloudSync';
 import { ProfileSettingsView } from './ProfileSettingsView'; // We can use it as a subview
 
 interface Props {
@@ -14,7 +14,7 @@ interface Props {
 
 export const UserProfileModal: React.FC<Props> = ({ userId, isOpen, onClose }) => {
   const { currentUser, contacts} = useApp();
-  const [posts, setPosts] = useState<ContentPost[]>([]);
+  const [posts, setPosts] = useState<{post: SocialPost, media: SocialMedia[]}[]>([]);
   const [activeTab, setActiveTab] = useState<'konten' | 'disukai' | 'tersimpan'>('konten');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
@@ -27,7 +27,7 @@ export const UserProfileModal: React.FC<Props> = ({ userId, isOpen, onClose }) =
   }, [isOpen, userId]);
 
   const loadPosts = async () => {
-    const data = await getAllContentPosts();
+    const data = await getUserPosts(userId);
     setPosts(data);
   };
 
@@ -63,22 +63,22 @@ export const UserProfileModal: React.FC<Props> = ({ userId, isOpen, onClose }) =
     } else {
       // Try cloud directory
       // Fallback to checking the posts
-      const userPost = posts.find(p => p.userId === userId);
+      const userPost = posts.find(p => p.post.ownerId === userId);
       if (userPost) {
-        profile.name = userPost.userName;
-        profile.username = userPost.userUsername || '';
-        profile.avatar = userPost.userAvatar || '';
+        profile.name = 'User';
+        profile.username = '';
+        profile.avatar = '';
       }
     }
   }
 
   const userPosts = posts.filter(p => {
-    if (p.userId !== userId) return false;
-    if (!isMe && p.privacy !== 'public') return false; // Hide non-public from others
+    if (p.post.ownerId !== userId) return false;
+    if (!isMe && p.post.privacy !== 'public') return false;
     return true;
   });
 
-  const likedPosts = posts.filter(p => p.likes.includes(userId));
+  const likedPosts: {post: import('../../types').SocialPost, media: import('../../types').SocialMedia[]}[] = [];
   // In a real app we'd have a saved posts list, but here we mock it or skip it for now.
 
   const displayPosts = activeTab === 'konten' ? userPosts : (activeTab === 'disukai' ? likedPosts : []);
@@ -99,9 +99,9 @@ export const UserProfileModal: React.FC<Props> = ({ userId, isOpen, onClose }) =
 
   const handleDelete = async (postId: string) => {
     if (!confirm('Hapus video ini?')) return;
-    await deleteContentPost(postId);
-    broadcastDeleteContentPost(currentUser, postId);
-    setPosts(posts.filter(p => p.id !== postId));
+    // await deleteSocialPost(postId);
+    // broadcastDelete
+    setPosts(posts.filter(p => p.post.id !== postId));
   };
 
   return (
@@ -178,17 +178,18 @@ export const UserProfileModal: React.FC<Props> = ({ userId, isOpen, onClose }) =
            </div>
 
            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
-              {displayPosts.map(post => {
-                 const pUrl = (post.videoBlob && (!post.videoUrl || post.videoUrl.startsWith('blob:'))) ? URL.createObjectURL(post.videoBlob as any) : post.videoUrl;
+              {displayPosts.map(p => {
+                 const pUrl = p.media.length > 0 && p.media[0].blob ? URL.createObjectURL(p.media[0].blob as any) : (p.media[0]?.url || '');
+const post = p.post;
                  return (
-                  <div key={post.id} className="group relative aspect-[9/16] bg-black rounded-xl overflow-hidden shadow-sm">
+                  <div key={p.post.id} className="group relative aspect-[9/16] bg-black rounded-xl overflow-hidden shadow-sm">
                     <video 
                       src={pUrl} 
                       className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-300"
                       preload="metadata"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3 pointer-events-none">
-                      <p className="text-white font-semibold text-sm line-clamp-2 leading-snug">{post.title}</p>
+                      <p className="text-white font-semibold text-sm line-clamp-2 leading-snug">{post.caption}</p>
                       <p className="text-white/80 text-xs mt-1">{post.views || 0} views</p>
                     </div>
                     

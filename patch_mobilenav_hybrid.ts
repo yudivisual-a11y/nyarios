@@ -1,4 +1,8 @@
+import fs from 'fs';
+let content = fs.readFileSync('src/components/layout/MobileNavigation.tsx', 'utf8');
 
+// I will completely replace the contents of MobileNavigation for the hybrid approach.
+const replacement = `
 import React, { useMemo } from 'react';
 import { Home, Search, PlusSquare, Heart, UserCircle, MessageSquare, BookUser, Users2, Phone } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -46,13 +50,13 @@ export const MobileNavigation: React.FC = () => {
                   setActiveNavTab(item.id);
                 }
               }}
-              className={`relative flex-1 h-full flex flex-col items-center justify-center gap-1 transition-all ${
+              className={\`relative flex-1 h-full flex flex-col items-center justify-center gap-1 transition-all \${
                 isActive 
                   ? (isSocialMode ? 'text-slate-900 dark:text-white' : 'text-emerald-500')
                   : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-300'
-              }`}
+              }\`}
             >
-              <div className={`${isActive && isSocialMode ? 'scale-110 transition-transform' : ''}`}>
+              <div className={\`\${isActive && isSocialMode ? 'scale-110 transition-transform' : ''}\`}>
                  {item.icon}
               </div>
               {!isSocialMode && <span className="text-[10px] font-medium">{item.label}</span>}
@@ -69,3 +73,6 @@ export const MobileNavigation: React.FC = () => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/components/layout/MobileNavigation.tsx', replacement);

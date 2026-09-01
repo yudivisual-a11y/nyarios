@@ -693,6 +693,7 @@ export function subscribeToCloudEvents(
   onContentPost?: (post: unknown) => void;
   onDeleteContent?: (postId: string) => void;
   onContentQuery?: (requesterId: string) => void;
+  onSocialAction?: (payload: any) => void;
   }
 ): () => void {
   if (typeof window === 'undefined' || !myIdentifier) return () => {};
@@ -902,6 +903,10 @@ export function subscribeToCloudEvents(
         if (data.type === 'USER_PRESENCE' || data.type === 'PRESENCE_QUERY') {
           handleIncomingPayload(data.type, data);
         }
+      } else if (topic.includes('/social')) {
+        if (data.type === 'SOCIAL_ACTION') {
+          handlers.onSocialAction?.(data.payload);
+        }
       } else if (topic.includes('/content')) {
         if (
           data.type === 'CONTENT_POST' ||
@@ -1040,4 +1045,26 @@ export async function broadcastContentQuery(sender: CurrentUserData) {
 
   publishToTopic(CONTENT_BROADCAST_TOPIC, stringified);
   publishToTopic(LEGACY_CONTENT_BROADCAST_TOPIC, stringified);
+}
+
+// ==========================================
+// SOCIAL SYNC
+// ==========================================
+const SOCIAL_BROADCAST_TOPIC = `${TOPIC_PREFIX}/broadcast/social`;
+
+export async function broadcastSocialPost(post: import('../types').SocialPost, media: import('../types').SocialMedia[]) {
+  // We can't broadcast Blobs. Convert to plain objects and strip blobs.
+  const cleanMedia = media.map(m => ({ ...m, blob: undefined }));
+  const payload = { post, media: cleanMedia, type: 'SOCIAL_POST_NEW' };
+  
+  const stringified = JSON.stringify({ type: 'SOCIAL_ACTION', payload });
+  const client = getOrCreateMqttClient();
+  if (client.connected) client.publish(SOCIAL_BROADCAST_TOPIC, stringified, { qos: 1 });
+}
+
+export async function broadcastSocialInteraction(action: 'LIKE' | 'UNLIKE' | 'COMMENT' | 'FOLLOW' | 'UNFOLLOW', data: any) {
+  const payload = { action, data, type: 'SOCIAL_INTERACTION' };
+  const stringified = JSON.stringify({ type: 'SOCIAL_ACTION', payload });
+  const client = getOrCreateMqttClient();
+  if (client.connected) client.publish(SOCIAL_BROADCAST_TOPIC, stringified, { qos: 1 });
 }

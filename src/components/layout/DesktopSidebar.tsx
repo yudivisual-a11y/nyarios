@@ -1,4 +1,6 @@
 import { PlaySquare,
+  Search,
+  Heart,
   MessageSquare,
   Users2,
   Phone,
@@ -47,6 +49,16 @@ export const DesktopSidebar: React.FC = () => {
       id: 'konten',
       label: 'Konten',
       icon: <PlaySquare className="w-5 h-5" />,
+    },
+    {
+      id: 'explore',
+      label: 'Explore',
+      icon: <Search className="w-5 h-5" />,
+    },
+    {
+      id: 'notifications',
+      label: 'Notifikasi',
+      icon: <Heart className="w-5 h-5" />,
     },
     {
       id: 'komunitas',

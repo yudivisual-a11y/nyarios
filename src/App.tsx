@@ -5,7 +5,10 @@ import { MobileNavigation } from './components/layout/MobileNavigation';
 import { ChatList } from './components/chat/ChatList';
 import { ChatCanvas } from './components/chat/ChatCanvas';
 import { CommunityView } from './components/views/CommunityView';
-import { ContentView } from './components/views/ContentView';
+import { SocialLayout } from './components/views/SocialLayout';
+import { ExploreView } from './components/views/ExploreView';
+import { NotificationsView } from './components/views/NotificationsView';
+import { UploadPostModal } from './components/social/UploadPostModal';
 import { UserProfileModal } from './components/views/UserProfileModal';
 import { ContactsView } from './components/views/ContactsView';
 import { CallsView } from './components/views/CallsView';
@@ -151,7 +154,9 @@ export const App: React.FC = () => {
             {activeNavTab === 'kontak' && <ContactsView />}
 
                         {/* KONTEN VIEW */}
-            {activeNavTab === 'konten' && <ContentView />}
+            {activeNavTab === 'konten' && <SocialLayout />}
+            {activeNavTab === 'explore' && <ExploreView />}
+            {activeNavTab === 'notifications' && <NotificationsView />}
 
             {/* KOMUNITAS VIEW */}
             {activeNavTab === 'komunitas' && <CommunityView />}
