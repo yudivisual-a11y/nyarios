@@ -81,29 +81,29 @@ export const ProfileSettingsView: React.FC = () => {
   // 1. SUBVIEW: TEMA TAMPILAN
   if (subView === 'theme') {
     return (
-      <div className="flex-1 flex flex-col h-full bg-[#18191d] p-4 sm:p-6 select-none overflow-y-auto animate-fade-in">
+      <div className="flex-1 flex flex-col h-full bg-[var(--bg-primary,#18191d)] text-[var(--text-primary,#f8fafc)] p-4 sm:p-6 select-none overflow-y-auto animate-fade-in">
         <div className="max-w-2xl mx-auto w-full space-y-6 pb-24 md:pb-8">
           {/* Header with Back Button */}
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setSubView('main')}
-              className="p-2.5 rounded-2xl neu-raised-circle text-slate-300 hover:text-white transition-all flex items-center gap-1.5"
+              className="p-2.5 rounded-2xl neu-raised-circle text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)] transition-all flex items-center gap-1.5"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
+              <h1 className="text-xl font-bold text-[var(--text-primary,#f8fafc)] tracking-tight">
                 Tema Tampilan
               </h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
                 Pilih tema warna latar dan nuansa visual aplikasi ({THEME_PRESETS.length} Pilihan)
               </p>
             </div>
           </div>
 
           {/* Theme Presets Grid */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-[#1e2025] neu-raised border border-white/5 space-y-4">
+          <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-surface,#1e2025)] neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
               {THEME_PRESETS.map((t) => {
                 const isSelected = accentTheme === t.id;
@@ -114,8 +114,8 @@ export const ProfileSettingsView: React.FC = () => {
                     onClick={() => setAccentTheme(t.id)}
                     className={`p-3 rounded-2xl text-left border transition-all relative overflow-hidden group ${
                       isSelected
-                        ? 'neu-raised border-white/40 ring-2 ring-white/30 scale-[1.02]'
-                        : 'bg-[#18191d] border-white/5 hover:border-white/20 hover:bg-[#202227]'
+                        ? 'neu-raised border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/40 scale-[1.02]'
+                        : 'bg-[var(--bg-card,#23262c)] border-[var(--border-color,rgba(255,255,255,0.05))] hover:border-[var(--border-color,rgba(255,255,255,0.2))]'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2.5">
@@ -132,15 +132,15 @@ export const ProfileSettingsView: React.FC = () => {
                           />
                         )}
                       </div>
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400">
+                      <span className="text-[9px] uppercase tracking-wider font-bold text-[var(--text-secondary,#94a3b8)]">
                         {t.category}
                       </span>
                     </div>
 
-                    <h4 className="text-xs font-bold text-white truncate">
+                    <h4 className="text-xs font-bold text-[var(--text-primary,#f8fafc)] truncate">
                       {t.name}
                     </h4>
-                    <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                    <p className="text-[10px] text-[var(--text-secondary,#94a3b8)] truncate mt-0.5">
                       {t.isLight ? 'Latar Terang' : 'Latar Gelap'}
                     </p>
                   </button>
@@ -155,7 +155,7 @@ export const ProfileSettingsView: React.FC = () => {
 
   // 2. MAIN SETTINGS VIEW
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#18191d] p-4 sm:p-6 select-none overflow-y-auto">
+    <div className="flex-1 flex flex-col h-full bg-[var(--bg-primary,#18191d)] text-[var(--text-primary,#f8fafc)] p-4 sm:p-6 select-none overflow-y-auto">
       <div className="max-w-2xl mx-auto w-full space-y-5 pb-24 md:pb-8">
         {/* Hidden Avatar Input */}
         <input
@@ -168,21 +168,21 @@ export const ProfileSettingsView: React.FC = () => {
 
         {/* Top Header */}
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-2xl neu-raised-circle text-[#ff4b4b]">
+          <div className="p-2 rounded-2xl neu-raised-circle text-[var(--color-accent-primary,#ff4b4b)]">
             <Settings className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-xl font-bold text-[var(--text-primary,#f8fafc)] tracking-tight">
               Pengaturan & Profil
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
               Kelola profil akun, tema warna, dan preferensi aplikasi
             </p>
           </div>
         </div>
 
         {/* 1. Profile Section Card */}
-        <div className="p-6 rounded-3xl bg-[#1e2025] neu-raised border border-white/5 space-y-5">
+        <div className="p-6 rounded-3xl bg-[var(--bg-surface,#1e2025)] neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] space-y-5">
           <div className="flex flex-col sm:flex-row items-center gap-5">
             {/* Avatar with Camera Overlay */}
             <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -192,7 +192,7 @@ export const ProfileSettingsView: React.FC = () => {
               </div>
               <button
                 type="button"
-                className="absolute bottom-0 right-0 p-2 rounded-full neu-coral-btn text-white shadow-lg"
+                className="absolute bottom-0 right-0 p-2 rounded-full bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] text-white shadow-lg"
                 title="Ubah Foto Profil"
               >
                 <Camera className="w-3.5 h-3.5" />
@@ -200,15 +200,15 @@ export const ProfileSettingsView: React.FC = () => {
             </div>
 
             <div className="flex-1 text-center sm:text-left min-w-0 space-y-1">
-              <h2 className="text-lg font-bold text-white truncate">
+              <h2 className="text-lg font-bold text-[var(--text-primary,#f8fafc)] truncate">
                 {name || 'Pengguna NYARIOS'}
               </h2>
-              <p className="text-xs text-slate-400 truncate">
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)] truncate">
                 {bio || 'Menggunakan NYARIOS'}
               </p>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
                 {currentUser.username && (
-                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-[var(--color-accent-glow,rgba(255,75,75,0.15))] text-[var(--color-accent-primary,#ff4b4b)] border border-[var(--color-accent-primary,#ff4b4b)]/30 font-bold">
                     {currentUser.username}
                   </span>
                 )}
@@ -227,9 +227,9 @@ export const ProfileSettingsView: React.FC = () => {
           </div>
 
           {/* Form Editor */}
-          <form onSubmit={handleSaveProfile} className="space-y-3.5 pt-4 border-t border-white/[0.04]">
+          <form onSubmit={handleSaveProfile} className="space-y-3.5 pt-4 border-t border-[var(--border-color,rgba(255,255,255,0.05))]">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider mb-1.5">
                 Nama Tampilan
               </label>
               <input
@@ -237,12 +237,12 @@ export const ProfileSettingsView: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Nama Anda"
-                className="w-full px-4 py-2.5 neu-inset border border-white/5 rounded-2xl text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#ff4b4b]"
+                className="w-full px-4 py-2.5 neu-inset bg-[var(--bg-inset,#141518)] border border-[var(--border-color,rgba(255,255,255,0.06))] rounded-2xl text-xs sm:text-sm text-[var(--text-primary,#f8fafc)] placeholder:text-[var(--text-secondary,#94a3b8)] focus:outline-none focus:border-[var(--color-accent-primary,#ff4b4b)]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider mb-1.5">
                 Info Bio / Status
               </label>
               <input
@@ -250,17 +250,17 @@ export const ProfileSettingsView: React.FC = () => {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Status Bio"
-                className="w-full px-4 py-2.5 neu-inset border border-white/5 rounded-2xl text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#ff4b4b]"
+                className="w-full px-4 py-2.5 neu-inset bg-[var(--bg-inset,#141518)] border border-[var(--border-color,rgba(255,255,255,0.06))] rounded-2xl text-xs sm:text-sm text-[var(--text-primary,#f8fafc)] placeholder:text-[var(--text-secondary,#94a3b8)] focus:outline-none focus:border-[var(--color-accent-primary,#ff4b4b)]"
               />
             </div>
 
             <div className="flex items-center justify-between pt-1">
               {savedSuccess ? (
-                <span className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 animate-fade-in">
+                <span className="text-xs text-[var(--color-accent-primary,#ff4b4b)] font-bold flex items-center gap-1.5 animate-fade-in">
                   <Check className="w-4 h-4" /> Profil Tersimpan!
                 </span>
               ) : (
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-[var(--text-secondary,#94a3b8)]">
                   Nama ini akan terlihat oleh kontak percakapan Anda
                 </span>
               )}
@@ -271,25 +271,25 @@ export const ProfileSettingsView: React.FC = () => {
           </form>
         </div>
 
-        {/* 2. Menu Item: Tema Tampilan (TIDAK LANGSUNG MUNCUL SEMUA) */}
+        {/* 2. Menu Item: Tema Tampilan */}
         <div
           onClick={() => setSubView('theme')}
-          className="p-4 sm:p-5 rounded-3xl bg-[#1e2025] neu-raised border border-white/5 flex items-center justify-between cursor-pointer hover:border-white/20 transition-all group shadow-sm"
+          className="p-4 sm:p-5 rounded-3xl bg-[var(--bg-surface,#1e2025)] neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] flex items-center justify-between cursor-pointer hover:border-[var(--color-accent-primary,#ff4b4b)]/30 transition-all group shadow-sm active:scale-98"
         >
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="p-3 rounded-2xl neu-raised text-[#ff4b4b] group-hover:scale-105 transition-transform">
+            <div className="p-3 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] group-hover:scale-105 transition-transform">
               <Palette className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white group-hover:text-white">
+                <h3 className="text-sm font-bold text-[var(--text-primary,#f8fafc)]">
                   Tema Tampilan
                 </h3>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full neu-inset text-[#ff6b6b] font-bold">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full neu-inset text-[var(--color-accent-primary,#ff4b4b)] font-bold">
                   {currentThemeObj.name}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 truncate mt-0.5">
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)] truncate mt-0.5">
                 Pilih dari {THEME_PRESETS.length} tema warna latar & tampilan aplikasi
               </p>
             </div>
@@ -300,33 +300,33 @@ export const ProfileSettingsView: React.FC = () => {
               className="w-5 h-5 rounded-full border border-white/20 shadow-md"
               style={{ backgroundColor: currentThemeObj.primary }}
             />
-            <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight className="w-5 h-5 text-[var(--text-secondary,#94a3b8)] group-hover:text-[var(--text-primary,#f8fafc)] group-hover:translate-x-0.5 transition-all" />
           </div>
         </div>
 
         {/* 3. Notification & Privacy Preferences */}
-        <div className="p-5 rounded-3xl bg-[#1e2025] neu-raised border border-white/5 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
+        <div className="p-5 rounded-3xl bg-[var(--bg-surface,#1e2025)] neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] space-y-3">
+          <h3 className="text-xs font-bold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider px-1">
             Preferensi & Privasi
           </h3>
 
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-[var(--border-color,rgba(255,255,255,0.05))]">
             {/* Sound Notification Toggle */}
             <div className="flex items-center justify-between py-3 px-2">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl neu-inset text-[#ff4b4b]">
+                <div className="p-2 rounded-xl neu-inset text-[var(--color-accent-primary,#ff4b4b)]">
                   <Bell className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white">Suara Notifikasi</h4>
-                  <p className="text-[11px] text-slate-400">Putar suara saat pesan terkirim atau diterima</p>
+                  <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary,#f8fafc)]">Suara Notifikasi</h4>
+                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)]">Putar suara saat pesan terkirim atau diterima</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 className={`w-11 h-6 rounded-full transition-colors relative p-0.5 ${
-                  soundEnabled ? 'bg-[#ff4b4b]' : 'bg-[#18191d]'
+                  soundEnabled ? 'bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)]' : 'bg-[var(--bg-inset,#141518)]'
                 }`}
               >
                 <div
@@ -344,8 +344,8 @@ export const ProfileSettingsView: React.FC = () => {
                   <Shield className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white">Enkripsi Ujung-ke-Ujung</h4>
-                  <p className="text-[11px] text-slate-400">Pesan dan panggilan Anda dilindungi secara privat</p>
+                  <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary,#f8fafc)]">Enkripsi Ujung-ke-Ujung</h4>
+                  <p className="text-[11px] text-[var(--text-secondary,#94a3b8)]">Pesan dan panggilan Anda dilindungi secara privat</p>
                 </div>
               </div>
               <span className="text-xs font-bold text-emerald-400 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-800/40">
@@ -356,27 +356,27 @@ export const ProfileSettingsView: React.FC = () => {
         </div>
 
         {/* 4. Storage & Data Statistics */}
-        <div className="p-5 rounded-3xl bg-[#1e2025] neu-raised border border-white/5 space-y-4">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
+        <div className="p-5 rounded-3xl bg-[var(--bg-surface,#1e2025)] neu-raised border border-[var(--border-color,rgba(255,255,255,0.06))] space-y-4">
+          <h3 className="text-xs font-bold text-[var(--text-secondary,#94a3b8)] uppercase tracking-wider px-1">
             Penyimpanan & Data
           </h3>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="p-3.5 rounded-2xl neu-inset text-center">
-              <span className="text-lg font-black text-[#ff4b4b] block">{chats.length}</span>
-              <span className="text-[11px] text-slate-400">Percakapan</span>
+            <div className="p-3.5 rounded-2xl neu-inset bg-[var(--bg-inset,#141518)] text-center">
+              <span className="text-lg font-black text-[var(--color-accent-primary,#ff4b4b)] block">{chats.length}</span>
+              <span className="text-[11px] text-[var(--text-secondary,#94a3b8)]">Percakapan</span>
             </div>
-            <div className="p-3.5 rounded-2xl neu-inset text-center">
+            <div className="p-3.5 rounded-2xl neu-inset bg-[var(--bg-inset,#141518)] text-center">
               <span className="text-lg font-black text-blue-400 block">{totalMessages}</span>
-              <span className="text-[11px] text-slate-400">Pesan</span>
+              <span className="text-[11px] text-[var(--text-secondary,#94a3b8)]">Pesan</span>
             </div>
-            <div className="p-3.5 rounded-2xl neu-inset text-center">
+            <div className="p-3.5 rounded-2xl neu-inset bg-[var(--bg-inset,#141518)] text-center">
               <span className="text-lg font-black text-amber-400 block">{tasks.length}</span>
-              <span className="text-[11px] text-slate-400">Tugas</span>
+              <span className="text-[11px] text-[var(--text-secondary,#94a3b8)]">Tugas</span>
             </div>
-            <div className="p-3.5 rounded-2xl neu-inset text-center">
+            <div className="p-3.5 rounded-2xl neu-inset bg-[var(--bg-inset,#141518)] text-center">
               <span className="text-lg font-black text-purple-400 block">{schedules.length}</span>
-              <span className="text-[11px] text-slate-400">Jadwal</span>
+              <span className="text-[11px] text-[var(--text-secondary,#94a3b8)]">Jadwal</span>
             </div>
           </div>
 

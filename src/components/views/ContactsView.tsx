@@ -7,13 +7,9 @@ import {
   Phone,
   Video,
   QrCode,
-  Sparkles,
   X,
-  PhoneCall,
   Check,
-  BookUser,
   AtSign,
-  Share2,
   Copy,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -167,27 +163,27 @@ export const ContactsView: React.FC = () => {
   });
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#F8FAFC] dark:bg-[#0B141A] select-none overflow-hidden transition-colors">
+    <div className="flex-1 flex flex-col h-full bg-[var(--bg-primary,#18191d)] text-[var(--text-primary,#f8fafc)] select-none overflow-hidden transition-colors">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-2xl animate-fade-in flex items-center gap-2">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] text-white font-bold text-xs shadow-2xl animate-fade-in flex items-center gap-2">
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Top Header Bar */}
-      <div className="p-4 sm:p-6 bg-white dark:bg-[#111B21] border-b border-gray-100 dark:border-white/5 shrink-0">
+      <div className="p-4 sm:p-6 bg-[var(--bg-surface,#1e2025)] border-b border-[var(--border-color,rgba(255,255,255,0.05))] shrink-0">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black shadow-sm">
+            <div className="w-11 h-11 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] flex items-center justify-center font-black shadow-sm">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+              <h1 className="text-xl font-black tracking-tight text-[var(--text-primary,#f8fafc)]">
                 Buku Kontak & Teman
               </h1>
-              <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">
-                Temukan & tambah teman via <span className="font-bold text-emerald-600">@username</span> bebas nomor HP
+              <p className="text-xs text-[var(--text-secondary,#94a3b8)] font-medium">
+                Temukan & tambah teman via <span className="font-bold text-[var(--color-accent-primary,#ff4b4b)]">@username</span> bebas nomor HP
               </p>
             </div>
           </div>
@@ -196,16 +192,16 @@ export const ContactsView: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsQrModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              className="px-3.5 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
               title="ID & QR Code Saya"
             >
-              <QrCode className="w-4 h-4 text-emerald-600" />
+              <QrCode className="w-4 h-4 text-[var(--color-accent-primary,#ff4b4b)]" />
               <span>ID Saya</span>
             </button>
 
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] transition-all cursor-pointer active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
               <span>+ Tambah @Username</span>
@@ -215,13 +211,13 @@ export const ContactsView: React.FC = () => {
 
         {/* Search Bar */}
         <div className="max-w-4xl mx-auto mt-4 relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary,#94a3b8)]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari teman via @username atau nama..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-[#1E293B] text-xs sm:text-sm text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/5 focus:border-emerald-500 transition-all shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[var(--bg-inset,#141518)] neu-sunken text-xs sm:text-sm text-[var(--text-primary,#f8fafc)] placeholder:text-[var(--text-secondary,#94a3b8)] outline-none border border-[var(--border-color,rgba(255,255,255,0.06))] focus:border-[var(--color-accent-primary,#ff4b4b)] transition-all"
           />
         </div>
       </div>
@@ -230,50 +226,50 @@ export const ContactsView: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-4xl mx-auto space-y-4">
           {/* User's Own ID Card Banner */}
-          <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-100 dark:border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+          <div className="p-4 rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.06))] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <Avatar name={currentUser.name} src={currentUser.avatar} size="md" />
               <div>
-                <p className="text-[11px] text-emerald-800 dark:text-emerald-400 font-bold uppercase tracking-wider">
+                <p className="text-[11px] text-[var(--color-accent-primary,#ff4b4b)] font-bold uppercase tracking-wider">
                   Username Anda untuk dibagikan:
                 </p>
-                <p className="text-base font-black text-gray-900 dark:text-white font-mono">
+                <p className="text-base font-black font-mono text-[var(--text-primary,#f8fafc)]">
                   {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
                 </p>
               </div>
             </div>
             <button
               onClick={handleCopyMyUsername}
-              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center justify-center gap-1.5 border border-[var(--border-color,rgba(255,255,255,0.06))] transition-all cursor-pointer shadow-sm active:scale-95"
             >
-              <Copy className="w-3.5 h-3.5" />
+              <Copy className="w-3.5 h-3.5 text-[var(--color-accent-primary,#ff4b4b)]" />
               <span>Salin Username</span>
             </button>
           </div>
 
           {/* Contact List */}
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-slate-400 px-1">
+            <div className="flex items-center justify-between text-xs font-bold text-[var(--text-secondary,#94a3b8)] px-1">
               <span>Semua Kontak ({filteredContacts.length})</span>
-              <span className="text-[10px] text-emerald-600 font-semibold">Terkoneksi Cloud</span>
+              <span className="text-[10px] text-[var(--color-accent-primary,#ff4b4b)] font-semibold">Terkoneksi Cloud</span>
             </div>
 
             {filteredContacts.length === 0 ? (
-              <div className="p-12 text-center rounded-3xl bg-white dark:bg-[#111B21] border border-gray-100 dark:border-white/5 space-y-3 shadow-sm">
-                <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 mx-auto flex items-center justify-center font-bold">
+              <div className="p-12 text-center rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.05))] space-y-3 shadow-sm">
+                <div className="w-16 h-16 rounded-full neu-raised text-[var(--color-accent-primary,#ff4b4b)] mx-auto flex items-center justify-center font-bold">
                   <AtSign className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)]">
                   {searchQuery ? 'Kontak Tidak Ditemukan' : 'Belum Ada Teman Terdaftar'}
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400 max-w-sm mx-auto">
+                <p className="text-xs text-[var(--text-secondary,#94a3b8)] max-w-sm mx-auto">
                   {searchQuery
                     ? `Tidak ada teman dengan username "${searchQuery}". Klik tombol Tambah di atas untuk mulai chat!`
                     : 'Ajak teman Anda bergabung dengan membagikan @username Anda, atau tambahkan @username teman di tombol atas!'}
                 </p>
                 <button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="mt-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-600/25 hover:bg-emerald-700 transition-all cursor-pointer"
+                  className="mt-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] text-white font-bold text-xs shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] hover:brightness-110 transition-all cursor-pointer active:scale-95"
                 >
                   + Tambah @Username Teman
                 </button>
@@ -282,7 +278,7 @@ export const ContactsView: React.FC = () => {
               filteredContacts.map((contact) => (
                 <div
                   key={contact.id}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-[#111B21] border border-gray-100 dark:border-white/5 hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all flex items-center justify-between gap-3 shadow-sm hover:shadow-md group"
+                  className="p-3.5 sm:p-4 rounded-2xl neu-flat bg-[var(--bg-card,#23262c)] border border-[var(--border-color,rgba(255,255,255,0.04))] hover:border-[var(--color-accent-primary,#ff4b4b)]/30 transition-all flex items-center justify-between gap-3 shadow-sm hover:shadow-md group"
                 >
                   {/* Left: Avatar & Info */}
                   <div
@@ -291,18 +287,18 @@ export const ContactsView: React.FC = () => {
                   >
                     <div className="relative shrink-0">
                       <Avatar name={contact.name} src={contact.avatar} size="md" />
-                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111B21]" />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[var(--bg-card,#23262c)]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-[var(--text-primary,#f8fafc)] truncate flex items-center gap-2">
                         <span>{contact.name}</span>
                         {contact.username && (
-                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                          <span className="text-xs font-mono font-bold text-[var(--color-accent-primary,#ff4b4b)] bg-[var(--bg-surface,#1e2025)] neu-sunken px-2 py-0.5 rounded-md border border-[var(--border-color,rgba(255,255,255,0.05))]">
                             {contact.username}
                           </span>
                         )}
                       </h4>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 truncate mt-0.5">
+                      <p className="text-xs text-[var(--text-secondary,#94a3b8)] truncate mt-0.5">
                         {contact.bio || 'Aktif di NYARIOS'}
                       </p>
                     </div>
@@ -312,7 +308,7 @@ export const ContactsView: React.FC = () => {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => handleVoiceCall(contact)}
-                      className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-emerald-50 hover:text-emerald-600 text-gray-600 dark:text-slate-300 transition-all cursor-pointer"
+                      className="p-2.5 rounded-xl neu-raised hover:text-[var(--color-accent-primary,#ff4b4b)] text-[var(--text-secondary,#94a3b8)] transition-all cursor-pointer active:scale-95"
                       title="Panggilan Suara"
                     >
                       <Phone className="w-4 h-4" />
@@ -320,7 +316,7 @@ export const ContactsView: React.FC = () => {
 
                     <button
                       onClick={() => handleVideoCall(contact)}
-                      className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-emerald-50 hover:text-emerald-600 text-gray-600 dark:text-slate-300 transition-all cursor-pointer"
+                      className="p-2.5 rounded-xl neu-raised hover:text-[var(--color-accent-primary,#ff4b4b)] text-[var(--text-secondary,#94a3b8)] transition-all cursor-pointer active:scale-95"
                       title="Panggilan Video HD"
                     >
                       <Video className="w-4 h-4" />
@@ -328,7 +324,7 @@ export const ContactsView: React.FC = () => {
 
                     <button
                       onClick={() => handleStartChatWithContact(contact)}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] transition-all cursor-pointer active:scale-95"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Kirim Pesan</span>
@@ -345,24 +341,24 @@ export const ContactsView: React.FC = () => {
       {/* MODAL: TAMBAH KONTAK VIA @USERNAME */}
       {/* ============================================================ */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#1E293B] border border-gray-100 dark:border-white/10 p-6 space-y-5 shadow-2xl relative animate-slide-up">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.1))] p-6 space-y-5 shadow-2xl relative animate-slide-up">
             <button
               onClick={() => setIsAddModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-white/10"
+              className="absolute top-4 right-4 p-2 rounded-full neu-raised text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] flex items-center justify-center">
                 <UserPlus className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                <h3 className="text-base font-bold text-[var(--text-primary,#f8fafc)]">
                   Tambah Teman via @Username
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-slate-400">
+                <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
                   Cukup ketik username teman untuk langsung terhubung
                 </p>
               </div>
@@ -370,11 +366,11 @@ export const ContactsView: React.FC = () => {
 
             <form onSubmit={handleAddNewContact} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-gray-700 dark:text-slate-300">
+                <label className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)]">
                   Username Teman (@)
                 </label>
                 <div className="relative flex items-center">
-                  <span className="absolute left-3.5 text-gray-400 font-bold text-xs">@</span>
+                  <span className="absolute left-3.5 text-[var(--color-accent-primary,#ff4b4b)] font-bold text-xs">@</span>
                   <input
                     type="text"
                     required
@@ -383,13 +379,13 @@ export const ContactsView: React.FC = () => {
                       setNewContactUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))
                     }
                     placeholder="contoh_username"
-                    className="w-full pl-8 pr-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/10 focus:border-emerald-500 font-mono font-bold shadow-sm"
+                    className="w-full pl-8 pr-4 py-2.5 rounded-2xl neu-sunken bg-[var(--bg-inset,#141518)] text-xs text-[var(--text-primary,#f8fafc)] placeholder:text-[var(--text-secondary,#94a3b8)] outline-none border border-[var(--border-color,rgba(255,255,255,0.06))] focus:border-[var(--color-accent-primary,#ff4b4b)] font-mono font-bold"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-gray-700 dark:text-slate-300">
+                <label className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)]">
                   Nama Tampilan Kontak (Opsional)
                 </label>
                 <input
@@ -397,12 +393,12 @@ export const ContactsView: React.FC = () => {
                   value={newContactName}
                   onChange={(e) => setNewContactName(e.target.value)}
                   placeholder="Misal: Acep Yudi"
-                  className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/10 focus:border-emerald-500 shadow-sm"
+                  className="w-full px-4 py-2.5 rounded-2xl neu-sunken bg-[var(--bg-inset,#141518)] text-xs text-[var(--text-primary,#f8fafc)] placeholder:text-[var(--text-secondary,#94a3b8)] outline-none border border-[var(--border-color,rgba(255,255,255,0.06))] focus:border-[var(--color-accent-primary,#ff4b4b)]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-gray-700 dark:text-slate-300">
+                <label className="text-[11px] font-bold text-[var(--text-secondary,#94a3b8)]">
                   Catatan / Status Kontak
                 </label>
                 <input
@@ -410,13 +406,13 @@ export const ContactsView: React.FC = () => {
                   value={newContactBio}
                   onChange={(e) => setNewContactBio(e.target.value)}
                   placeholder="Misal: Teman kantor / Teman kuliah"
-                  className="w-full px-4 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 outline-none border border-gray-200 dark:border-white/10 focus:border-emerald-500 shadow-sm"
+                  className="w-full px-4 py-2.5 rounded-2xl neu-sunken bg-[var(--bg-inset,#141518)] text-xs text-[var(--text-primary,#f8fafc)] placeholder:text-[var(--text-secondary,#94a3b8)] outline-none border border-[var(--border-color,rgba(255,255,255,0.06))] focus:border-[var(--color-accent-primary,#ff4b4b)]"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer mt-2"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] transition-all cursor-pointer mt-2 active:scale-95"
               >
                 <Check className="w-4 h-4" />
                 <span>Simpan & Buka Obrolan</span>
@@ -430,40 +426,40 @@ export const ContactsView: React.FC = () => {
       {/* MODAL: ID & QR CODE SAYA */}
       {/* ============================================================ */}
       {isQrModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#1E293B] border border-gray-100 dark:border-white/10 p-6 space-y-4 shadow-2xl relative text-center animate-slide-up">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
+          <div className="w-full max-w-sm rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.1))] p-6 space-y-4 shadow-2xl relative text-center animate-slide-up">
             <button
               onClick={() => setIsQrModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-white/10"
+              className="absolute top-4 right-4 p-2 rounded-full neu-raised text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-emerald-100 shadow-md mx-auto bg-white p-0.5">
+            <div className="w-20 h-20 rounded-3xl overflow-hidden neu-raised border border-[var(--border-color,rgba(255,255,255,0.1))] shadow-md mx-auto p-1">
               <img src="/logo-nyarios.jpg" alt="NYARIOS" className="w-full h-full object-cover rounded-2xl" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-base font-black text-gray-900 dark:text-white">
+              <h3 className="text-base font-black text-[var(--text-primary,#f8fafc)]">
                 {currentUser.name}
               </h3>
-              <p className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">
+              <p className="text-sm font-mono font-bold text-[var(--color-accent-primary,#ff4b4b)]">
                 {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
               </p>
             </div>
 
             {/* QR Mockup */}
-            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 inline-block mx-auto shadow-inner">
-              <QrCode className="w-36 h-36 text-gray-800 dark:text-white mx-auto" />
+            <div className="p-4 rounded-2xl bg-white neu-raised inline-block mx-auto shadow-inner">
+              <QrCode className="w-36 h-36 text-gray-900 mx-auto" />
             </div>
 
-            <p className="text-xs text-gray-500 dark:text-slate-400">
+            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
               Minta teman Anda untuk menambahkan username di atas pada aplikasi NYARIOS mereka.
             </p>
 
             <button
               onClick={handleCopyMyUsername}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/25 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] cursor-pointer active:scale-95"
             >
               <Copy className="w-4 h-4" />
               <span>Salin ID Username</span>

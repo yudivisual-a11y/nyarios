@@ -185,7 +185,7 @@ export const DesktopSidebar: React.FC = () => {
             <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
               {currentUser.name}
             </span>
-            <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 truncate">
+            <span className="text-[10px] font-mono font-bold text-[var(--color-accent-primary,#ff4b4b)] truncate">
               {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
             </span>
           </div>
