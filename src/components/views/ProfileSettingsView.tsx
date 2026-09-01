@@ -19,6 +19,7 @@ import { Button } from '../ui/Button';
 import { TransparentLogo } from '../brand/TransparentLogo';
 import { THEME_PRESETS } from '../../utils/themePresets';
 import { UserQrModal } from '../modals/UserQrModal';
+import { compressImageFile } from '../../utils/imageCompressor';
 
 export const ProfileSettingsView: React.FC = () => {
   const {
@@ -53,19 +54,28 @@ export const ProfileSettingsView: React.FC = () => {
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const res = reader.result as string;
+    try {
+      // Compress avatar to crisp 400x400 HD photo (~30KB) for instant cloud sync
+      const res = await compressImageFile(file, 400, 400, 0.85);
       setAvatar(res);
       updateUserProfile(name.trim() || 'Saya', bio.trim() || 'Menggunakan NYARIOS', res);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2000);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const res = reader.result as string;
+        setAvatar(res);
+        updateUserProfile(name.trim() || 'Saya', bio.trim() || 'Menggunakan NYARIOS', res);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2000);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleClearData = () => {

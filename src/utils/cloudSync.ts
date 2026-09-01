@@ -269,6 +269,8 @@ export async function registerUserOnCloud(user: CurrentUserData) {
   }
 }
 
+export const broadcastUserPresence = registerUserOnCloud;
+
 /**
  * Retrieves all registered users from the cloud directory excluding current user
  */

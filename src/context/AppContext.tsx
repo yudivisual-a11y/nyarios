@@ -30,6 +30,8 @@ import {
   broadcastCloudStatus,
   broadcastDeleteStatus,
   broadcastStatusQuery,
+  broadcastUserPresence,
+  getCloudDirectoryUsers,
   getCloudActiveStatuses,
 } from '../utils/cloudSync';
 import {
@@ -630,6 +632,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               c.id === existing.id
                 ? {
                     ...c,
+                    avatar: payload.senderAvatar || c.avatar,
+                    name: c.isGroup ? c.name : (payload.senderName || c.name),
                     unreadCount: activeChatIdRef.current === existing.id ? 0 : (c.unreadCount || 0) + 1,
                     lastMessage: {
                       text: snippet,
@@ -667,6 +671,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           }
         });
 
+        // Also update contact avatar if sender is in contacts
+        if (payload.senderAvatar) {
+          const sUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
+          const sPhone = payload.senderPhone ? payload.senderPhone.replace(/\D/g, '') : '';
+          setContacts((prev) =>
+            prev.map((ct) => {
+              const ctUser = ct.username ? normalizeUsername(ct.username) : '';
+              const ctPhone = ct.phone ? ct.phone.replace(/\D/g, '') : '';
+              if ((sUser && ctUser === sUser) || (sPhone && ctPhone === sPhone) || ct.id === payload.senderId) {
+                return { ...ct, avatar: payload.senderAvatar || ct.avatar };
+              }
+              return ct;
+            })
+          );
+        }
+
         sound.playMessageReceived();
       },
       onIncomingCall: (signal) => {
@@ -678,8 +698,72 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setIncomingCall(null);
         }
       },
-      onUserPresence: () => {
-        // Presence updated
+      onUserPresence: (cloudUser) => {
+        if (!cloudUser) return;
+        const targetUser = cloudUser.username ? normalizeUsername(cloudUser.username) : '';
+        const targetPhone = cloudUser.phone ? cloudUser.phone.replace(/\D/g, '') : '';
+
+        // 1. Update matching chat avatars & names
+        setChats((prevChats) =>
+          prevChats.map((c) => {
+            const cUser = c.username ? normalizeUsername(c.username) : '';
+            const cPhone = c.phone ? c.phone.replace(/\D/g, '') : '';
+            const isMatch =
+              (targetUser && cUser === targetUser) ||
+              (targetPhone && cPhone === targetPhone) ||
+              (targetUser && normalizeUsername(c.name) === targetUser) ||
+              c.id === `chat_${cloudUser.id}`;
+
+            if (isMatch) {
+              return {
+                ...c,
+                avatar: cloudUser.avatar || c.avatar,
+                name: c.isGroup ? c.name : (cloudUser.name || c.name),
+              };
+            }
+            return c;
+          })
+        );
+
+        // 2. Update matching contacts
+        setContacts((prevContacts) =>
+          prevContacts.map((ct) => {
+            const ctUser = ct.username ? normalizeUsername(ct.username) : '';
+            const ctPhone = ct.phone ? ct.phone.replace(/\D/g, '') : '';
+            const isMatch =
+              (targetUser && ctUser === targetUser) ||
+              (targetPhone && ctPhone === targetPhone) ||
+              ct.id === cloudUser.id;
+
+            if (isMatch) {
+              return {
+                ...ct,
+                avatar: cloudUser.avatar || ct.avatar,
+                name: cloudUser.name || ct.name,
+                bio: cloudUser.bio || ct.bio,
+              };
+            }
+            return ct;
+          })
+        );
+
+        // 3. Update matching status avatars
+        if (cloudUser.avatar) {
+          setStatuses((prevStatuses) =>
+            prevStatuses.map((st) => {
+              if (
+                st.userId === cloudUser.id ||
+                (targetUser && normalizeUsername(st.userName) === targetUser)
+              ) {
+                return {
+                  ...st,
+                  userAvatar: cloudUser.avatar || st.userAvatar,
+                };
+              }
+              return st;
+            })
+          );
+        }
       },
       onStatusStory: (incomingStatus) => {
         const fullStory = incomingStatus as StatusStory;
@@ -705,16 +789,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       },
     });
 
-    // Query online peers for all active statuses after connection initializes
+    // Query online peers for all active statuses and presence after connection initializes
     const queryTimer = setTimeout(() => {
       broadcastStatusQuery(currentUser);
-    }, 1500);
+      broadcastUserPresence(currentUser);
+    }, 300);
 
     return () => {
       clearTimeout(queryTimer);
       unsubscribe();
     };
-  }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn, statuses]);
+  }, [currentUser?.username, currentUser?.phone, currentUser?.id, currentUser?.avatar, isLoggedIn, statuses]);
 
   // Restore Active Statuses (including Large Video Stories) from IndexedDB on startup
   useEffect(() => {
@@ -946,7 +1031,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateUserProfile = (name: string, bio: string, avatar?: string) => {
-    setCurrentUser(prev => ({ ...prev, name, bio, avatar: avatar ?? prev.avatar }));
+    const updated = {
+      ...currentUser,
+      name: name.trim() || currentUser.name || 'Saya',
+      bio: bio.trim() || currentUser.bio || 'Menggunakan NYARIOS',
+      avatar: avatar ?? currentUser.avatar,
+    };
+    setCurrentUser(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('nyarios_user', JSON.stringify(updated));
+      } catch (e) {
+        console.warn('Profile save notice', e);
+      }
+    }
+    broadcastUserPresence(updated);
   };
 
   const activeChat = useMemo(() => {
@@ -977,13 +1076,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return existing.id;
     }
 
+    // Lookup avatar from contacts or directory
+    const matchingContact = contacts.find((ct) => {
+      const ctUser = ct.username ? normalizeUsername(ct.username) : '';
+      return ctUser === cleanRaw;
+    });
+
+    let foundAvatar = matchingContact?.avatar;
+    if (!foundAvatar) {
+      const dirUsers = getCloudDirectoryUsers(currentUser.username || currentUser.name);
+      const foundInDir = dirUsers.find((u) => {
+        const uUser = u.username ? normalizeUsername(u.username) : '';
+        return uUser === cleanRaw;
+      });
+      if (foundInDir?.avatar) foundAvatar = foundInDir.avatar;
+    }
+
     const newChatId = `chat_direct_${cleanRaw || Date.now()}`;
     const newChat: Chat = {
       id: newChatId,
       isGroup: false,
-      name: name || cleanUser,
+      name: name || matchingContact?.name || cleanUser,
       username: cleanUser,
-      bio: 'Teman di NYARIOS',
+      avatar: foundAvatar,
+      bio: matchingContact?.bio || 'Teman di NYARIOS',
       unreadCount: 0,
       isPinned: false,
       isMuted: false,
