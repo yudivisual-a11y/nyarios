@@ -182,11 +182,11 @@ export const DesktopSidebar: React.FC = () => {
         >
           <Avatar name={currentUser.name} src={currentUser.avatar} size="sm" isOnline={true} />
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-white truncate">
+            <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
               {currentUser.name}
             </span>
-            <span className="text-[10px] text-slate-400 truncate">
-              {currentUser.bio}
+            <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 truncate">
+              {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
             </span>
           </div>
         </div>
