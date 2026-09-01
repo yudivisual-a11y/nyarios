@@ -14,35 +14,19 @@ export const StatusView: React.FC = () => {
   const [viewerStoryList, setViewerStoryList] = useState<StatusStory[]>([]);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
 
-  // 1. My Statuses (Hanya milik saya)
+  // 1. My Statuses (Hanya milik saya, diurutkan kronologis untuk pemutaran cerita)
   const myStatuses = useMemo(() => {
-    return statuses.filter((s) => s.userId === currentUser.id || s.userName === currentUser.name);
+    return statuses
+      .filter((s) => s.userId === currentUser.id || s.userName === currentUser.name)
+      .sort((a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0));
   }, [statuses, currentUser.id, currentUser.name]);
 
-  // 2. Contact Statuses (Hanya milik kontak / orang lain)
+  // 2. Contact Statuses (Hanya milik kontak / orang lain, diurutkan terbaru dahulu di grid)
   const contactStatuses = useMemo(() => {
-    return statuses.filter((s) => s.userId !== currentUser.id && s.userName !== currentUser.name);
+    return statuses
+      .filter((s) => s.userId !== currentUser.id && s.userName !== currentUser.name)
+      .sort((a, b) => (b.rawTimestamp || 0) - (a.rawTimestamp || 0));
   }, [statuses, currentUser.id, currentUser.name]);
-
-  // Group contact stories by person
-  const groupedContactStatuses = useMemo(() => {
-    const map = new Map<string, StatusStory[]>();
-    contactStatuses.forEach((st) => {
-      const key = st.userId || st.userName;
-      const arr = map.get(key) || [];
-      arr.push(st);
-      map.set(key, arr);
-    });
-
-    return Array.from(map.values()).map((stories) => {
-      const sorted = [...stories].sort((a, b) => (b.rawTimestamp || 0) - (a.rawTimestamp || 0));
-      return {
-        latest: sorted[0],
-        allStories: sorted,
-        unviewedCount: sorted.filter((s) => !s.viewers?.includes(currentUser.name)).length,
-      };
-    });
-  }, [contactStatuses, currentUser.name]);
 
   const handleOpenMyStatus = () => {
     if (myStatuses.length > 0) {
@@ -54,13 +38,13 @@ export const StatusView: React.FC = () => {
     }
   };
 
-  const handleOpenContactGroup = (groupStories: StatusStory[]) => {
-    setViewerStoryList(groupStories);
-    setSelectedStoryIndex(0);
+  const handleOpenContactStatus = (clickedIndex: number) => {
+    setViewerStoryList(contactStatuses);
+    setSelectedStoryIndex(clickedIndex);
     setIsViewerOpen(true);
   };
 
-  const latestMyStatus = myStatuses[0];
+  const latestMyStatus = myStatuses[myStatuses.length - 1] || myStatuses[0];
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[var(--bg-primary,#18191d)] p-4 sm:p-6 select-none overflow-y-auto transition-colors">
@@ -200,17 +184,16 @@ export const StatusView: React.FC = () => {
               )}
             </div>
 
-            {/* 2. KARTU-KARTU STATUS KONTAK LAIN (BERJAJAR LANGSUNG DI SAMPING STATUS SAYA) */}
-            {groupedContactStatuses.map((group) => {
-              const st = group.latest;
-              const hasUnviewed = group.unviewedCount > 0;
+            {/* 2. KARTU-KARTU STATUS KONTAK LAIN (SETIAP STATUS 1, 2, 3 BERJAJAR LANGSUNG) */}
+            {contactStatuses.map((st, idx) => {
+              const isViewed = st.viewers && st.viewers.includes(currentUser.name);
 
               return (
                 <div
-                  key={st.userId || st.id}
-                  onClick={() => handleOpenContactGroup(group.allStories)}
+                  key={st.id}
+                  onClick={() => handleOpenContactStatus(idx)}
                   className={`relative aspect-[9/14] rounded-3xl overflow-hidden cursor-pointer group neu-raised border transition-all shadow-md hover:scale-[1.02] active:scale-95 ${
-                    hasUnviewed
+                    !isViewed
                       ? 'border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/30'
                       : 'border-[var(--border-color,rgba(255,255,255,0.06))] opacity-85'
                   }`}
@@ -254,18 +237,11 @@ export const StatusView: React.FC = () => {
                   <div className="absolute top-3 left-3 z-10">
                     <div className="relative">
                       <Avatar name={st.userName} src={st.userAvatar} size="sm" />
-                      {hasUnviewed && (
+                      {!isViewed && (
                         <span className="absolute -inset-0.5 rounded-full border-2 border-[var(--color-accent-primary,#ff4b4b)]" />
                       )}
                     </div>
                   </div>
-
-                  {/* Top Right Story Count Badge if > 1 */}
-                  {group.allStories.length > 1 && (
-                    <div className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 text-[10px] font-bold text-white">
-                      {group.allStories.length}
-                    </div>
-                  )}
 
                   {/* Bottom Gradient Overlay with Name & Time */}
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 flex flex-col justify-end">
@@ -273,7 +249,7 @@ export const StatusView: React.FC = () => {
                       {st.userName}
                     </span>
                     <span className="text-[10px] text-slate-300 drop-shadow-sm truncate">
-                      {st.timestamp} {group.allStories.length > 1 ? `• ${group.allStories.length} cerita` : (st.caption ? `• ${st.caption}` : '')}
+                      {st.timestamp} {st.caption ? `• ${st.caption}` : ''}
                     </span>
                   </div>
                 </div>
@@ -282,7 +258,7 @@ export const StatusView: React.FC = () => {
           </div>
 
           {/* Empty state notice if no contact statuses yet */}
-          {groupedContactStatuses.length === 0 && (
+          {contactStatuses.length === 0 && (
             <div className="p-6 rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.05))] flex items-center gap-3.5 mt-2 shadow-sm">
               <div className="w-10 h-10 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] flex items-center justify-center shrink-0">
                 <CircleDot className="w-5 h-5" />
