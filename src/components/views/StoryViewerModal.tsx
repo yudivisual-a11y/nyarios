@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Send, Eye, Sparkles } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Send, Eye, Sparkles, Trash2 } from 'lucide-react';
 import { StatusStory } from '../../types';
 import { Avatar } from '../ui/Avatar';
+import { useApp } from '../../context/AppContext';
 import { formatRelativeTime } from '../../utils/formatters';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 
@@ -20,6 +21,8 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
 }) => {
   useHistoryBack(isOpen, onClose, 'story_viewer');
 
+  const { currentUser, deleteStatus } = useApp();
+
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [replyText, setReplyText] = useState('');
@@ -28,6 +31,25 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const currentStory = statuses[currentIndex];
+  const isMyStory =
+    currentStory &&
+    (currentStory.userId === currentUser.id || currentStory.userName === currentUser.name);
+
+  const handleDeleteCurrentStory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentStory) return;
+    if (confirm('Hapus status ini sekarang?')) {
+      deleteStatus(currentStory.id);
+      if (statuses.length <= 1) {
+        onClose();
+      } else if (currentIndex >= statuses.length - 1) {
+        setCurrentIndex((c) => Math.max(0, c - 1));
+        setProgress(0);
+      } else {
+        setProgress(0);
+      }
+    }
+  };
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -154,9 +176,22 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-white/80 bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-sm">
-            <Eye className="w-3.5 h-3.5" />
-            <span className="font-bold">{currentStory.viewers.length || 1}</span>
+          <div className="flex items-center gap-2">
+            {isMyStory && (
+              <button
+                type="button"
+                onClick={handleDeleteCurrentStory}
+                className="p-1.5 rounded-full bg-rose-600/80 hover:bg-rose-600 text-white backdrop-blur-sm transition-all hover:scale-110 active:scale-95"
+                title="Hapus Status Ini"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <div className="flex items-center gap-1 text-xs text-white/80 bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-sm">
+              <Eye className="w-3.5 h-3.5" />
+              <span className="font-bold">{currentStory.viewers.length || 1}</span>
+            </div>
           </div>
         </div>
 

@@ -385,12 +385,12 @@ export async function broadcastCloudStatus(
       await new Promise<void>((resolve) => {
         if (client.connected) {
           client.publish(STATUS_BROADCAST_TOPIC, chunkPayload, { qos: 1 }, () => {
-            setTimeout(resolve, 25);
+            setTimeout(resolve, 5);
           });
         } else {
           client.once('connect', () => {
             client.publish(STATUS_BROADCAST_TOPIC, chunkPayload, { qos: 1 }, () => {
-              setTimeout(resolve, 25);
+              setTimeout(resolve, 5);
             });
           });
         }
