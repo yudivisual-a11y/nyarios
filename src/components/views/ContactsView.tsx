@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users,
   Search,
@@ -11,16 +11,20 @@ import {
   Check,
   AtSign,
   Copy,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
 import { sound } from '../../utils/sound';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 import { ContactPerson } from '../../types';
-import { getCloudDirectoryUsers, normalizeUsername } from '../../utils/cloudSync';
+import { normalizeUsername } from '../../utils/cloudSync';
 
 export const ContactsView: React.FC = () => {
   const {
+    contacts,
+    addContact,
+    deleteContact,
     chats,
     setActiveChatId,
     setActiveNavTab,
@@ -36,35 +40,6 @@ export const ContactsView: React.FC = () => {
   const [newContactName, setNewContactName] = useState('');
   const [newContactBio, setNewContactBio] = useState('Menggunakan NYARIOS');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Cloud synced directory users
-  const myIdentifier = currentUser.username || currentUser.phone || currentUser.id;
-  const [cloudUsers, setCloudUsers] = useState<ContactPerson[]>(() =>
-    getCloudDirectoryUsers(myIdentifier)
-  );
-
-  // Refresh cloud users on mount and interval
-  useEffect(() => {
-    const refresh = () => setCloudUsers(getCloudDirectoryUsers(myIdentifier));
-    refresh();
-    const interval = setInterval(refresh, 2000);
-    return () => clearInterval(interval);
-  }, [myIdentifier]);
-
-  // Custom contacts list stored in state / synced from direct chats
-  const [customContacts, setCustomContacts] = useState<ContactPerson[]>(() => {
-    const directChats = chats.filter((c) => !c.isGroup);
-    return directChats.map((c) => ({
-      id: c.id,
-      name: c.name,
-      username: c.username || `@${c.name.toLowerCase().replace(/\s+/g, '_')}`,
-      phone: c.phone,
-      bio: c.bio || 'Ada di NYARIOS',
-      avatar: c.avatar,
-      isOnline: true,
-      chatId: c.id,
-    }));
-  });
 
   useHistoryBack(isAddModalOpen, () => setIsAddModalOpen(false), 'add_contact_modal');
   useHistoryBack(isQrModalOpen, () => setIsQrModalOpen(false), 'qr_modal');
@@ -87,7 +62,10 @@ export const ContactsView: React.FC = () => {
       setActiveChatId(existingChat.id);
       setActiveNavTab('pesan');
     } else {
-      createDirectChatWithUsername(contact.username || `@${contact.name.toLowerCase().replace(/\s+/g, '_')}`, contact.name);
+      createDirectChatWithUsername(
+        contact.username || `@${contact.name.toLowerCase().replace(/\s+/g, '_')}`,
+        contact.name
+      );
       setActiveNavTab('pesan');
     }
   };
@@ -114,14 +92,14 @@ export const ContactsView: React.FC = () => {
     const displayName = newContactName.trim() || cleanUser;
 
     const newPerson: ContactPerson = {
-      id: `contact_${Date.now()}`,
+      id: `contact_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       name: displayName,
       username: formattedUsername,
       bio: newContactBio.trim() || 'Teman di NYARIOS',
       isOnline: true,
     };
 
-    setCustomContacts((prev) => [newPerson, ...prev]);
+    addContact(newPerson);
     createDirectChatWithUsername(formattedUsername, displayName);
     sound.playMessageSent();
     setIsAddModalOpen(false);
@@ -139,18 +117,36 @@ export const ContactsView: React.FC = () => {
     }
   };
 
+  // Contacts are strictly isolated to the logged-in user!
   const allContactsList = useMemo(() => {
     const map = new Map<string, ContactPerson>();
-    cloudUsers.forEach((u) => {
-      const key = u.username ? normalizeUsername(u.username) : u.id;
-      map.set(key, u);
+
+    // 1. Manually added / saved contacts for this user account
+    contacts.forEach((c) => {
+      const key = c.username ? normalizeUsername(c.username) : c.id;
+      map.set(key, c);
     });
-    customContacts.forEach((u) => {
-      const key = u.username ? normalizeUsername(u.username) : u.id;
-      map.set(key, u);
+
+    // 2. Direct chats present in this user account
+    const directChats = chats.filter((c) => !c.isGroup);
+    directChats.forEach((c) => {
+      const uKey = c.username ? normalizeUsername(c.username) : c.id;
+      if (!map.has(uKey)) {
+        map.set(uKey, {
+          id: c.id,
+          name: c.name,
+          username: c.username || `@${c.name.toLowerCase().replace(/\s+/g, '_')}`,
+          phone: c.phone,
+          bio: c.bio || 'Ada di NYARIOS',
+          avatar: c.avatar,
+          isOnline: true,
+          chatId: c.id,
+        });
+      }
     });
+
     return Array.from(map.values());
-  }, [cloudUsers, customContacts]);
+  }, [contacts, chats]);
 
   const filteredContacts = allContactsList.filter((c) => {
     const q = searchQuery.toLowerCase().replace(/^@+/, '');
@@ -329,6 +325,22 @@ export const ContactsView: React.FC = () => {
                       <MessageSquare className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Kirim Pesan</span>
                     </button>
+
+                    {contact.id.startsWith('contact_') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Hapus kontak "${contact.name}"?`)) {
+                            deleteContact(contact.id);
+                            showToast(`Kontak "${contact.name}" dihapus`);
+                          }
+                        }}
+                        className="p-2 rounded-xl neu-raised hover:text-rose-500 text-[var(--text-secondary,#94a3b8)] transition-all cursor-pointer active:scale-95 opacity-70 group-hover:opacity-100"
+                        title="Hapus dari Kontak"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

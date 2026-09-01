@@ -30,13 +30,16 @@ export const DesktopSidebar: React.FC = () => {
 
   const totalUnread = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
   const pendingTasks = tasks.filter(t => t.status !== 'done').length;
+  const otherUnreadStatuses = statuses.filter(
+    (s) => s.userId !== currentUser.id && (!s.viewers || !s.viewers.includes(currentUser.name))
+  ).length;
 
   const mainNavItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     {
       id: 'pesan',
       label: 'Pesan',
       icon: <MessageSquare className="w-5 h-5" />,
-      badge: totalUnread,
+      badge: totalUnread > 0 ? totalUnread : undefined,
     },
     {
       id: 'kontak',
@@ -52,7 +55,7 @@ export const DesktopSidebar: React.FC = () => {
       id: 'status',
       label: 'Status',
       icon: <CircleDot className="w-5 h-5" />,
-      badge: statuses.length > 0 ? statuses.length : undefined,
+      badge: otherUnreadStatuses > 0 ? otherUnreadStatuses : undefined,
     },
     {
       id: 'panggilan',

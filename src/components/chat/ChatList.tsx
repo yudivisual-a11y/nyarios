@@ -10,6 +10,14 @@ import {
   Trash2,
   Archive,
   FolderPlus,
+  Camera,
+  Video,
+  Mic,
+  FileText,
+  BarChart2,
+  HelpCircle,
+  CheckSquare,
+  Calendar,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
@@ -249,13 +257,65 @@ export const ChatList: React.FC<ChatListProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-slate-400 truncate pr-2 font-normal">
+                    <div className="text-xs text-slate-400 truncate pr-2 font-normal flex items-center gap-1 min-w-0">
                       {chat.lastMessage ? (
-                        <span>{chat.lastMessage.text}</span>
+                        <>
+                          {chat.lastMessage.type === 'image' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <Camera className="w-3.5 h-3.5 text-[#ff6b6b] shrink-0" />
+                              <span>{chat.lastMessage.text && !chat.lastMessage.text.startsWith('data:') ? chat.lastMessage.text : 'Foto'}</span>
+                            </span>
+                          )}
+                          {chat.lastMessage.type === 'video' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <Video className="w-3.5 h-3.5 text-[#ff6b6b] shrink-0" />
+                              <span>{chat.lastMessage.text && !chat.lastMessage.text.startsWith('data:') ? chat.lastMessage.text : 'Video'}</span>
+                            </span>
+                          )}
+                          {(chat.lastMessage.type === 'voice_note' || chat.lastMessage.type === 'audio') && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <Mic className="w-3.5 h-3.5 text-[#ff6b6b] shrink-0" />
+                              <span>Pesan Suara</span>
+                            </span>
+                          )}
+                          {chat.lastMessage.type === 'document' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <FileText className="w-3.5 h-3.5 text-[#ff6b6b] shrink-0" />
+                              <span>{chat.lastMessage.text && !chat.lastMessage.text.startsWith('data:') ? chat.lastMessage.text : 'Dokumen'}</span>
+                            </span>
+                          )}
+                          {chat.lastMessage.type === 'poll' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <BarChart2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <span>Polling: {chat.lastMessage.text}</span>
+                            </span>
+                          )}
+                          {chat.lastMessage.type === 'quick_ask' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <HelpCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <span>Tanya Cepat</span>
+                            </span>
+                          )}
+                          {chat.lastMessage.type === 'task_card' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <CheckSquare className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span>Tugas: {chat.lastMessage.text}</span>
+                            </span>
+                          )}
+                          {chat.lastMessage.type === 'schedule_card' && (
+                            <span className="flex items-center gap-1 text-slate-300 font-medium">
+                              <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                              <span>Jadwal: {chat.lastMessage.text}</span>
+                            </span>
+                          )}
+                          {(!chat.lastMessage.type || chat.lastMessage.type === 'text' || chat.lastMessage.type === 'system') && (
+                            <span className="truncate">{chat.lastMessage.text}</span>
+                          )}
+                        </>
                       ) : (
                         <span className="italic text-slate-500">Belum ada pesan</span>
                       )}
-                    </p>
+                    </div>
 
                     {/* Coral Red unread badge */}
                     {hasUnread && (

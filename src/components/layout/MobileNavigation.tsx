@@ -10,9 +10,12 @@ import { useApp } from '../../context/AppContext';
 import { MainNavTab } from '../../types';
 
 export const MobileNavigation: React.FC = () => {
-  const { activeNavTab, setActiveNavTab, chats, statuses } = useApp();
+  const { activeNavTab, setActiveNavTab, chats, statuses, currentUser } = useApp();
 
   const totalUnread = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+  const otherUnreadStatuses = statuses.filter(
+    (s) => s.userId !== currentUser.id && (!s.viewers || !s.viewers.includes(currentUser.name))
+  ).length;
 
   const navItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number | string }[] = [
     {
@@ -30,7 +33,7 @@ export const MobileNavigation: React.FC = () => {
       id: 'status',
       label: 'Status',
       icon: <Camera className="w-5 h-5" />,
-      badge: statuses.length > 0 ? statuses.length : undefined,
+      badge: otherUnreadStatuses > 0 ? otherUnreadStatuses : undefined,
     },
     {
       id: 'komunitas',

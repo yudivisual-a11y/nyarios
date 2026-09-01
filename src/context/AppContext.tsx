@@ -14,6 +14,7 @@ import {
   DesktopSubTab,
   QuickAskData,
   PollData,
+  ContactPerson,
 } from '../types';
 import { sound } from '../utils/sound';
 import { THEME_PRESETS, applyThemeVariables } from '../utils/themePresets';
@@ -134,6 +135,11 @@ interface AppContextType {
 
   // Simulator helper
   simulateContactReply: (chatId: string, replyText: string) => void;
+
+  // Contacts
+  contacts: ContactPerson[];
+  addContact: (contact: ContactPerson) => void;
+  deleteContact: (contactId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -234,7 +240,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const activeChatIdRef = useRef<string | null>(null);
   useEffect(() => {
     activeChatIdRef.current = activeChatId;
+    if (activeChatId) {
+      setChats((prev) =>
+        prev.map((c) => (c.id === activeChatId && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c))
+      );
+    }
   }, [activeChatId]);
+
+  // Contacts state - STRICTLY ISOLATED PER USER
+  const [contacts, setContacts] = useState<ContactPerson[]>(() => {
+    if (typeof window !== 'undefined') {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
+        try {
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_contacts`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
+      }
+    }
+    return [];
+  });
 
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
     if (typeof window !== 'undefined') {
@@ -466,7 +495,51 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [callRecords, isLoggedIn, currentUser?.id]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
+    try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_contacts`, JSON.stringify(contacts));
+    } catch (e) {
+      console.warn('Storage quota notice', e);
+    }
+  }, [contacts, isLoggedIn, currentUser?.id]);
+
+  const addContact = (contact: ContactPerson) => {
+    setContacts((prev) => {
+      const cleanUser = contact.username?.replace(/^@+/, '').toLowerCase();
+      if (
+        prev.some(
+          (c) =>
+            (cleanUser && c.username?.replace(/^@+/, '').toLowerCase() === cleanUser) ||
+            c.id === contact.id
+        )
+      ) {
+        return prev;
+      }
+      return [contact, ...prev];
+    });
+  };
+
+  const deleteContact = (contactId: string) => {
+    setContacts((prev) => prev.filter((c) => c.id !== contactId));
+  };
+
   const [incomingCall, setIncomingCall] = useState<IncomingCallSignal | null>(null);
+
+  // Helper to format lastMessage preview cleanly like WhatsApp
+  const formatLastMessageSnippet = (msg: Message): string => {
+    if (msg.caption && msg.caption.trim()) return msg.caption.trim();
+    if (msg.type === 'image') return 'Foto';
+    if (msg.type === 'video') return 'Video';
+    if (msg.type === 'voice_note' || msg.type === 'audio') return 'Pesan suara';
+    if (msg.type === 'document') return msg.fileName || 'Dokumen';
+    if (msg.type === 'poll') return 'Polling';
+    if (msg.type === 'quick_ask') return 'Tanya Cepat';
+    if (msg.type === 'task_card') return 'Tugas';
+    if (msg.type === 'schedule_card') return 'Jadwal';
+    if (msg.content && !msg.content.startsWith('data:')) return msg.content;
+    return 'Pesan baru';
+  };
 
   // Real-time Cloud Synchronization Listener
   useEffect(() => {
@@ -481,18 +554,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           minute: '2-digit',
         });
 
-        const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
-        const senderPhone = payload.senderPhone ? normalizePhoneNumber(payload.senderPhone) : '';
-        const targetIdentifier = senderUser || senderPhone || payload.senderId || 'user';
-        const defaultChatId = `chat_direct_${targetIdentifier}`;
-
         setChats((prevChats) => {
+          const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
+          const senderPhone = payload.senderPhone ? payload.senderPhone.replace(/\D/g, '') : '';
+          const defaultChatId = `chat_${payload.senderId || payload.senderName.toLowerCase().replace(/\s+/g, '_')}`;
+
           const existing = prevChats.find((c) => {
-            if (senderUser && c.username) {
+            if (c.username && senderUser) {
               return normalizeUsername(c.username) === senderUser;
             }
-            if (senderPhone && c.phone) {
-              return normalizePhoneNumber(c.phone) === senderPhone;
+            if (senderPhone && c.phone && c.phone.replace(/\D/g, '') === senderPhone) {
+              return true;
             }
             if (senderUser && c.name) {
               return normalizeUsername(c.name) === senderUser;
@@ -525,6 +597,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             };
           });
 
+          const snippet = formatLastMessageSnippet(payload.message);
+
           if (existing) {
             return prevChats.map((c) =>
               c.id === existing.id
@@ -532,7 +606,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     ...c,
                     unreadCount: activeChatIdRef.current === existing.id ? 0 : (c.unreadCount || 0) + 1,
                     lastMessage: {
-                      text: payload.message.content || 'Pesan baru',
+                      text: snippet,
                       timestamp: timeStr,
                       rawTimestamp: payload.timestamp || Date.now(),
                       senderName: payload.senderName,
@@ -556,7 +630,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               isArchived: false,
               folderIds: [],
               lastMessage: {
-                text: payload.message.content || 'Pesan baru',
+                text: snippet,
                 timestamp: timeStr,
                 rawTimestamp: payload.timestamp || Date.now(),
                 senderName: payload.senderName,
@@ -678,6 +752,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const savedCalls = localStorage.getItem(`nyarios_data_${userId}_calls`);
       setCallRecords(savedCalls ? JSON.parse(savedCalls) : []);
 
+      // 9. Restore Contacts (Strictly per-user)
+      const savedContacts = localStorage.getItem(`nyarios_data_${userId}_contacts`);
+      if (savedContacts) {
+        try {
+          const parsed = JSON.parse(savedContacts);
+          setContacts(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setContacts([]);
+        }
+      } else {
+        setContacts([]);
+      }
+
       setActiveChatId(null);
     } catch (err) {
       console.warn('Restore user data notice', err);
@@ -761,6 +848,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.removeItem('nyarios_chat_state_v1_communities');
       localStorage.removeItem('nyarios_chat_state_v1_statuses');
       localStorage.removeItem('nyarios_chat_state_v1_calls');
+      localStorage.removeItem('nyarios_chat_state_v1_contacts');
     } catch {}
 
     setCurrentUser({
@@ -773,6 +861,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
     setChats([]);
     setMessages({});
+    setContacts([]);
     setTasks([]);
     setSchedules([]);
     setCommunities([]);
@@ -1543,6 +1632,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createCustomFolder,
         deleteCustomFolder,
         simulateContactReply,
+        contacts,
+        addContact,
+        deleteContact,
       }}
     >
       {children}
