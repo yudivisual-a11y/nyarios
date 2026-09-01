@@ -118,6 +118,7 @@ export interface Message {
   caption?: string;
   fileName?: string;
   fileSize?: string;
+  fileUrl?: string;
   quickAsk?: QuickAskData;
   poll?: PollData;
   taskData?: TaskItem;

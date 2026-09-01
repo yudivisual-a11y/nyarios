@@ -1,7 +1,7 @@
 /**
  * NYARIOS Real-Time Multi-Device Cloud Synchronization Engine
- * Powered by High-Speed MQTT over WebSocket + Local Broadcast Mesh
- * Provides instantaneous, sub-50ms latency, zero-rate-limited messaging worldwide.
+ * Powered by High-Speed MQTT over WebSocket + Local Broadcast Mesh + Binary Chunking
+ * Transmits text, HD photos, videos, voice notes, and documents instantly across devices.
  */
 
 import mqtt, { MqttClient } from 'mqtt';
@@ -41,6 +41,7 @@ const MQTT_BROKERS = [
   'wss://broker.hivemq.com:8884/mqtt',
 ];
 const TOPIC_PREFIX = 'nyarios_2026';
+const CHUNK_SIZE = 28 * 1024; // 28KB per chunk for safe WebSocket packet transit
 
 // Global shared MQTT client singleton
 let sharedMqttClient: MqttClient | null = null;
@@ -112,7 +113,6 @@ function getOrCreateMqttClient(): MqttClient {
 
     sharedMqttClient.on('error', (err) => {
       console.warn('[NYARIOS Cloud] MQTT connection warning:', err);
-      // Switch broker fallback
       activeBrokerIndex++;
     });
   } catch (e) {
@@ -202,7 +202,7 @@ export function getCloudDirectoryUsers(myIdentifier: string): ContactPerson[] {
 }
 
 /**
- * Sends a real-time message to another user (@username or phone) across the internet
+ * Sends a real-time message (text, image, video, voice note, document) across the internet
  */
 export async function sendCloudRealtimeMessage(
   sender: CurrentUserData,
@@ -230,14 +230,39 @@ export async function sendCloudRealtimeMessage(
     localBroadcastBus.postMessage({ type: 'INCOMING_MESSAGE', topic: recipientTopic, payload });
   }
 
-  // 2. Publish to MQTT broker across internet
+  // 2. Publish to MQTT broker across internet (with chunking support for large files/media)
   const client = getOrCreateMqttClient();
-  if (client.connected) {
-    client.publish(`${recipientTopic}/messages`, stringified);
+
+  const publishToTopic = (topic: string, data: string) => {
+    if (client.connected) {
+      client.publish(topic, data);
+    } else {
+      client.once('connect', () => {
+        client.publish(topic, data);
+      });
+    }
+  };
+
+  if (stringified.length <= CHUNK_SIZE) {
+    // Fits in a single packet
+    publishToTopic(`${recipientTopic}/messages`, stringified);
   } else {
-    client.once('connect', () => {
-      client.publish(`${recipientTopic}/messages`, stringified);
-    });
+    // Large payload (Photo HD / Video / Audio / Document) -> Send in numbered chunks
+    const totalChunks = Math.ceil(stringified.length / CHUNK_SIZE);
+    const chunkMsgId = payload.id;
+
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkData = stringified.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      const chunkPayload = JSON.stringify({
+        type: 'CHUNKED_MESSAGE',
+        chunkMsgId,
+        index: i,
+        total: totalChunks,
+        chunkData,
+      });
+
+      publishToTopic(`${recipientTopic}/messages`, chunkPayload);
+    }
   }
 }
 
@@ -311,7 +336,7 @@ export async function respondToCloudCallSignal(
 }
 
 /**
- * Subscribes to real-time events for the logged-in user with instant MQTT WebSocket + Local Mesh
+ * Subscribes to real-time events for the logged-in user with instant MQTT WebSocket + Local Mesh + Chunk Reassembly
  */
 export function subscribeToCloudEvents(
   myIdentifier: string,
@@ -331,6 +356,10 @@ export function subscribeToCloudEvents(
   const dirTopic = `${TOPIC_PREFIX}/directory`;
 
   const processedMsgIds = new Set<string>();
+  const chunkBufferMap = new Map<
+    string,
+    { total: number; chunks: Map<number, string>; timer: NodeJS.Timeout }
+  >();
 
   const handleIncomingPayload = (type: string, data: any) => {
     try {
@@ -339,6 +368,42 @@ export function subscribeToCloudEvents(
         if (!processedMsgIds.has(payload.id)) {
           processedMsgIds.add(payload.id);
           handlers.onMessage(payload);
+        }
+      } else if (type === 'CHUNKED_MESSAGE' && data?.chunkMsgId) {
+        const { chunkMsgId, index, total, chunkData } = data;
+        let entry = chunkBufferMap.get(chunkMsgId);
+        if (!entry) {
+          entry = {
+            total,
+            chunks: new Map<number, string>(),
+            timer: setTimeout(() => chunkBufferMap.delete(chunkMsgId), 45000),
+          };
+          chunkBufferMap.set(chunkMsgId, entry);
+        }
+
+        entry.chunks.set(index, chunkData);
+
+        if (entry.chunks.size === total) {
+          clearTimeout(entry.timer);
+          chunkBufferMap.delete(chunkMsgId);
+
+          let fullStr = '';
+          for (let i = 0; i < total; i++) {
+            fullStr += entry.chunks.get(i) || '';
+          }
+
+          try {
+            const reassembled = JSON.parse(fullStr);
+            if (reassembled?.type === 'INCOMING_MESSAGE' && reassembled?.payload) {
+              const payload: CloudMessagePayload = reassembled.payload;
+              if (!processedMsgIds.has(payload.id)) {
+                processedMsgIds.add(payload.id);
+                handlers.onMessage(payload);
+              }
+            }
+          } catch (e) {
+            console.warn('[NYARIOS Cloud] Reassembly parse error', e);
+          }
         }
       } else if (type === 'CALL_SIGNAL' && data?.signal) {
         handlers.onIncomingCall(data.signal);
@@ -385,8 +450,10 @@ export function subscribeToCloudEvents(
     try {
       const text = messageBuffer.toString();
       const data = JSON.parse(text);
-      if (topic === msgTopic && data.type === 'INCOMING_MESSAGE') {
-        handleIncomingPayload('INCOMING_MESSAGE', data);
+      if (topic === msgTopic) {
+        if (data.type === 'INCOMING_MESSAGE' || data.type === 'CHUNKED_MESSAGE') {
+          handleIncomingPayload(data.type, data);
+        }
       } else if (topic === callTopic && data.type === 'CALL_SIGNAL') {
         handleIncomingPayload('CALL_SIGNAL', data);
       } else if (topic === callRespTopic && data.type === 'CALL_RESPONSE') {

@@ -1,13 +1,12 @@
 /**
- * Helper to compress and resize images on the client side with ULTRA HIGH DEFINITION (HD/2K).
- * Maintains razor-sharp clarity (Quality 0.92, Max 1920px Full HD) unlike heavy WhatsApp compression.
- * Ensures stunning vibrant photos while keeping memory efficient.
+ * Helper to compress and resize images on the client side with optimal quality and speed.
+ * Generates clear, high-resolution JPEG images that transmit instantly over the cloud.
  */
 export function compressImageFile(
   file: File,
-  maxWidth = 1920,
-  maxHeight = 1920,
-  quality = 0.92
+  maxWidth = 1080,
+  maxHeight = 1080,
+  quality = 0.75
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -19,7 +18,7 @@ export function compressImageFile(
         let width = img.width;
         let height = img.height;
 
-        // Calculate new aspect-ratio preserved dimensions up to Full HD (1920px)
+        // Calculate aspect-ratio preserved dimensions up to 1080px
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
@@ -41,11 +40,10 @@ export function compressImageFile(
           return;
         }
 
-        // Enable high-quality image smoothing
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
-        // Draw and export crystal-clear JPEG (0.92 HD quality)
+        // Draw and export optimized JPEG
         ctx.drawImage(img, 0, 0, width, height);
         const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
         resolve(compressedBase64);

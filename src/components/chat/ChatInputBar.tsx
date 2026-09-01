@@ -163,6 +163,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       };
       reader.readAsDataURL(file);
     }
+    e.target.value = '';
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,20 +184,30 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeChatId) return;
 
-    sendMessage(activeChatId, file.name, 'document', {
-      fileName: file.name,
-      fileSize: formatBytes(file.size),
-      caption: text.trim() || undefined,
-      replyTo: replyingTo || undefined,
-    });
-    setText('');
-    if (replyingTo) onCancelReply();
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        const dataUrl = reader.result as string;
+        sendMessage(activeChatId, dataUrl, 'document', {
+          fileName: file.name,
+          fileSize: formatBytes(file.size),
+          fileUrl: dataUrl,
+          caption: text.trim() || undefined,
+          replyTo: replyingTo || undefined,
+        });
+        setText('');
+        if (replyingTo) onCancelReply();
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const commonEmojis = ['❤️', '👍', '😂', '🔥', '🙏', '🎉', '😊', '😍', '✨', '👏', '🤝', '💯'];

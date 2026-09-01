@@ -139,8 +139,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const handleDownloadDoc = () => {
     const fileName = message.fileName || 'Dokumen_NYARIOS.pdf';
+    const src = message.fileUrl || message.content;
     const link = document.createElement('a');
-    link.href = message.content.startsWith('data:') ? message.content : `data:text/plain;charset=utf-8,${encodeURIComponent(message.content)}`;
+    link.href = src.startsWith('data:') ? src : `data:text/plain;charset=utf-8,${encodeURIComponent(src)}`;
     link.download = fileName;
     document.body.appendChild(link);
     link.click();
