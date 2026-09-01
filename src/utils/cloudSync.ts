@@ -35,9 +35,25 @@ export interface CloudMessagePayload {
   timestamp: number;
 }
 
+export interface CloudStatusPayload {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  type: 'text' | 'image' | 'video';
+  content: string;
+  caption?: string;
+  bgColor?: string;
+  timestamp: string;
+  rawTimestamp: number;
+  viewers?: string[];
+}
+
 const CLOUD_STORAGE_USERS_KEY = 'nyarios_cloud_directory_v2';
+const CLOUD_STORAGE_STATUSES_KEY = 'nyarios_cloud_active_statuses_v4';
 const PRIMARY_MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 const TOPIC_PREFIX = 'nyarios_2026';
+const STATUS_BROADCAST_TOPIC = `${TOPIC_PREFIX}/broadcast/statuses`;
 const CHUNK_SIZE = 180 * 1024; // 180KB per packet for atomic instant photo/audio transmission
 
 // Global shared MQTT client singleton
@@ -276,6 +292,70 @@ export function getCloudDirectoryUsers(myIdentifier: string): ContactPerson[] {
 }
 
 /**
+ * Retrieves all active statuses across the mesh within last 24 hours
+ */
+export function getCloudActiveStatuses(): CloudStatusPayload[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CLOUD_STORAGE_STATUSES_KEY);
+    if (!raw) return [];
+    const list: CloudStatusPayload[] = JSON.parse(raw);
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const activeOnly = list.filter((s) => now - (s.rawTimestamp || 0) < twentyFourHours);
+    if (activeOnly.length !== list.length) {
+      localStorage.setItem(CLOUD_STORAGE_STATUSES_KEY, JSON.stringify(activeOnly));
+    }
+    return activeOnly;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Broadcasts a status story to the entire cloud mesh and MQTT real-time stream
+ */
+export async function broadcastCloudStatus(
+  sender: CurrentUserData,
+  status: CloudStatusPayload
+) {
+  if (typeof window === 'undefined') return;
+
+  const cleanSender = normalizeUsername(sender.username || sender.name);
+
+  // 1. Save to local active statuses storage
+  try {
+    const active = getCloudActiveStatuses();
+    const filtered = active.filter((s) => s.id !== status.id);
+    const updated = [status, ...filtered];
+    localStorage.setItem(CLOUD_STORAGE_STATUSES_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.warn('Status storage error:', err);
+  }
+
+  // 2. Broadcast to Local Mesh Bus (instant cross-tab / cross-window)
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({ type: 'STATUS_STORY', payload: status });
+  }
+
+  // 3. Broadcast to MQTT Broker across the internet
+  const client = getOrCreateMqttClient(cleanSender);
+  const stringified = JSON.stringify({ type: 'STATUS_STORY', payload: status });
+
+  const publishStatus = () => {
+    if (stringified.length <= CHUNK_SIZE) {
+      client.publish(STATUS_BROADCAST_TOPIC, stringified, { qos: 1 });
+    }
+  };
+
+  if (client.connected) {
+    publishStatus();
+  } else {
+    client.once('connect', publishStatus);
+  }
+}
+
+/**
  * Sends a real-time message (text, image, video, voice note, document) across the internet
  */
 export async function sendCloudRealtimeMessage(
@@ -438,6 +518,7 @@ export function subscribeToCloudEvents(
     onIncomingCall: (signal: IncomingCallSignal) => void;
     onCallResponse: (callId: string, status: string) => void;
     onUserPresence: (user: ContactPerson) => void;
+    onStatusStory?: (status: CloudStatusPayload) => void;
   }
 ): () => void {
   if (typeof window === 'undefined' || !myIdentifier) return () => {};
@@ -504,6 +585,10 @@ export function subscribeToCloudEvents(
         handlers.onCallResponse(data.callId, data.status);
       } else if (type === 'USER_PRESENCE' && data?.user) {
         handlers.onUserPresence(data.user);
+      } else if (type === 'STATUS_STORY' && data?.payload) {
+        if (handlers.onStatusStory) {
+          handlers.onStatusStory(data.payload);
+        }
       }
     } catch (e) {
       console.warn('[NYARIOS Cloud v4] Event handler notice:', e);
@@ -524,14 +609,14 @@ export function subscribeToCloudEvents(
 
   // 2. Listen on Cloud MQTT WebSocket Broker with Wildcard QoS 1
   const client = getOrCreateMqttClient(cleanMyUser);
-  const topicsToSubscribe = [myWildcardTopic, myMsgTopic, dirTopic];
+  const topicsToSubscribe = [myWildcardTopic, myMsgTopic, dirTopic, STATUS_BROADCAST_TOPIC];
 
   topicsToSubscribe.forEach((t) => currentSubscribedTopics.add(t));
 
   const subscribeAll = () => {
     client.subscribe(topicsToSubscribe, { qos: 1 }, (err) => {
       if (!err) {
-        console.log(`[NYARIOS Cloud v4] Subscribed QoS 1 to: ${myWildcardTopic}`);
+        console.log(`[NYARIOS Cloud v4] Subscribed QoS 1 to: ${myWildcardTopic}, ${STATUS_BROADCAST_TOPIC}`);
       }
     });
   };
@@ -564,6 +649,10 @@ export function subscribeToCloudEvents(
       } else if (topic === dirTopic || topic.endsWith('/directory')) {
         if (data.type === 'USER_PRESENCE') {
           handleIncomingPayload('USER_PRESENCE', data);
+        }
+      } else if (topic === STATUS_BROADCAST_TOPIC || topic.includes('/statuses')) {
+        if (data.type === 'STATUS_STORY') {
+          handleIncomingPayload('STATUS_STORY', data);
         }
       }
     } catch (err) {

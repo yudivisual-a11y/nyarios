@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CircleDot, Plus, Camera, Trash2, Play } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
@@ -15,10 +15,34 @@ export const StatusView: React.FC = () => {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
 
   // 1. My Statuses (Hanya milik saya)
-  const myStatuses = statuses.filter((s) => s.userId === currentUser.id);
+  const myStatuses = useMemo(() => {
+    return statuses.filter((s) => s.userId === currentUser.id || s.userName === currentUser.name);
+  }, [statuses, currentUser.id, currentUser.name]);
 
   // 2. Contact Statuses (Hanya milik kontak / orang lain)
-  const contactStatuses = statuses.filter((s) => s.userId !== currentUser.id);
+  const contactStatuses = useMemo(() => {
+    return statuses.filter((s) => s.userId !== currentUser.id && s.userName !== currentUser.name);
+  }, [statuses, currentUser.id, currentUser.name]);
+
+  // Group contact stories by person
+  const groupedContactStatuses = useMemo(() => {
+    const map = new Map<string, StatusStory[]>();
+    contactStatuses.forEach((st) => {
+      const key = st.userId || st.userName;
+      const arr = map.get(key) || [];
+      arr.push(st);
+      map.set(key, arr);
+    });
+
+    return Array.from(map.values()).map((stories) => {
+      const sorted = [...stories].sort((a, b) => (b.rawTimestamp || 0) - (a.rawTimestamp || 0));
+      return {
+        latest: sorted[0],
+        allStories: sorted,
+        unviewedCount: sorted.filter((s) => !s.viewers?.includes(currentUser.name)).length,
+      };
+    });
+  }, [contactStatuses, currentUser.name]);
 
   const handleOpenMyStatus = () => {
     if (myStatuses.length > 0) {
@@ -30,9 +54,9 @@ export const StatusView: React.FC = () => {
     }
   };
 
-  const handleOpenContactStatus = (index: number) => {
-    setViewerStoryList(contactStatuses);
-    setSelectedStoryIndex(index);
+  const handleOpenContactGroup = (groupStories: StatusStory[]) => {
+    setViewerStoryList(groupStories);
+    setSelectedStoryIndex(0);
     setIsViewerOpen(true);
   };
 
@@ -172,17 +196,18 @@ export const StatusView: React.FC = () => {
             </div>
 
             {/* 2. KARTU-KARTU STATUS KONTAK LAIN (BERJAJAR LANGSUNG DI SAMPING STATUS SAYA) */}
-            {contactStatuses.map((st, idx) => {
-              const isViewed = st.viewers && st.viewers.includes(currentUser.name);
+            {groupedContactStatuses.map((group) => {
+              const st = group.latest;
+              const hasUnviewed = group.unviewedCount > 0;
 
               return (
                 <div
-                  key={st.id}
-                  onClick={() => handleOpenContactStatus(idx)}
+                  key={st.userId || st.id}
+                  onClick={() => handleOpenContactGroup(group.allStories)}
                   className={`relative aspect-[9/14] rounded-3xl overflow-hidden cursor-pointer group neu-raised border transition-all shadow-md hover:scale-[1.02] active:scale-95 ${
-                    !isViewed
-                      ? 'border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/20'
-                      : 'border-[var(--border-color,rgba(255,255,255,0.06))] opacity-80'
+                    hasUnviewed
+                      ? 'border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/30'
+                      : 'border-[var(--border-color,rgba(255,255,255,0.06))] opacity-85'
                   }`}
                 >
                   {/* Background Content */}
@@ -212,23 +237,30 @@ export const StatusView: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Top Left Contact Avatar */}
+                  {/* Top Left Contact Avatar with Ring */}
                   <div className="absolute top-3 left-3 z-10">
                     <div className="relative">
                       <Avatar name={st.userName} src={st.userAvatar} size="sm" />
-                      {!isViewed && (
+                      {hasUnviewed && (
                         <span className="absolute -inset-0.5 rounded-full border-2 border-[var(--color-accent-primary,#ff4b4b)]" />
                       )}
                     </div>
                   </div>
+
+                  {/* Top Right Story Count Badge if > 1 */}
+                  {group.allStories.length > 1 && (
+                    <div className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 text-[10px] font-bold text-white">
+                      {group.allStories.length}
+                    </div>
+                  )}
 
                   {/* Bottom Gradient Overlay with Name & Time */}
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 flex flex-col justify-end">
                     <span className="text-xs font-bold text-white truncate drop-shadow-md">
                       {st.userName}
                     </span>
-                    <span className="text-[10px] text-slate-300 drop-shadow-sm">
-                      {st.timestamp} {st.caption ? `• ${st.caption}` : ''}
+                    <span className="text-[10px] text-slate-300 drop-shadow-sm truncate">
+                      {st.timestamp} {group.allStories.length > 1 ? `• ${group.allStories.length} cerita` : (st.caption ? `• ${st.caption}` : '')}
                     </span>
                   </div>
                 </div>
@@ -237,7 +269,7 @@ export const StatusView: React.FC = () => {
           </div>
 
           {/* Empty state notice if no contact statuses yet */}
-          {contactStatuses.length === 0 && (
+          {groupedContactStatuses.length === 0 && (
             <div className="p-6 rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.05))] flex items-center gap-3.5 mt-2 shadow-sm">
               <div className="w-10 h-10 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] flex items-center justify-center shrink-0">
                 <CircleDot className="w-5 h-5" />

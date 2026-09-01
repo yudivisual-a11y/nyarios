@@ -27,6 +27,8 @@ import {
   respondToCloudCallSignal,
   subscribeToCloudEvents,
   IncomingCallSignal,
+  broadcastCloudStatus,
+  getCloudActiveStatuses,
 } from '../utils/cloudSync';
 
 export interface CurrentUserData {
@@ -361,6 +363,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Status Stories
   const [statuses, setStatuses] = useState<StatusStory[]>(() => {
+    let list: StatusStory[] = [];
     if (typeof window !== 'undefined') {
       const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
       const savedUser = localStorage.getItem('nyarios_user');
@@ -369,12 +372,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const userObj = JSON.parse(savedUser);
           if (userObj?.id) {
             const saved = localStorage.getItem(`nyarios_data_${userObj.id}_statuses`);
-            if (saved) return JSON.parse(saved);
+            if (saved) list = JSON.parse(saved);
           }
         } catch {}
       }
+      try {
+        const cloudActive = getCloudActiveStatuses();
+        const map = new Map<string, StatusStory>();
+        list.forEach((s) => map.set(s.id, s));
+        cloudActive.forEach((s) => {
+          if (!map.has(s.id)) map.set(s.id, s as StatusStory);
+        });
+        return Array.from(map.values()).sort(
+          (a, b) => (b.rawTimestamp || 0) - (a.rawTimestamp || 0)
+        );
+      } catch {}
     }
-    return [];
+    return list;
   });
 
   // Calls
@@ -654,6 +668,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       },
       onUserPresence: () => {
         // Presence updated
+      },
+      onStatusStory: (incomingStatus) => {
+        setStatuses((prev) => {
+          const filtered = prev.filter((s) => s.id !== incomingStatus.id);
+          return [incomingStatus as StatusStory, ...filtered];
+        });
       },
     });
 
@@ -1362,19 +1382,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const createStatus = (type: 'text' | 'image' | 'video', content: string, caption?: string, bgColor?: string) => {
     const rawNow = Date.now();
     const newStatus: StatusStory = {
-      id: `status_${rawNow}`,
+      id: `status_${rawNow}_${Math.random().toString(36).substring(2, 7)}`,
       userId: currentUser.id,
       userName: currentUser.name,
       userAvatar: currentUser.avatar,
       type,
       content,
       caption,
-      bgColor: bgColor || '#059669',
+      bgColor: bgColor || '#ff4b4b',
       timestamp: 'Baru saja',
       rawTimestamp: rawNow,
       viewers: [],
     };
     setStatuses(prev => [newStatus, ...prev]);
+    broadcastCloudStatus(currentUser, newStatus);
   };
 
   const deleteStatus = (statusId: string) => {
