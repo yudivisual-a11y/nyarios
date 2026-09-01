@@ -124,6 +124,11 @@ export const StatusView: React.FC = () => {
                       <video
                         src={latestMyStatus.content}
                         className="w-full h-full object-cover opacity-80"
+                        playsInline
+                        muted
+                        autoPlay
+                        loop
+                        preload="metadata"
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/20">
@@ -220,7 +225,15 @@ export const StatusView: React.FC = () => {
                   )}
                   {st.type === 'video' && (
                     <div className="w-full h-full relative bg-black flex items-center justify-center">
-                      <video src={st.content} className="w-full h-full object-cover opacity-80" />
+                      <video
+                        src={st.content}
+                        className="w-full h-full object-cover opacity-80"
+                        playsInline
+                        muted
+                        autoPlay
+                        loop
+                        preload="metadata"
+                      />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/20">
                           <Play className="w-5 h-5 fill-current ml-0.5" />

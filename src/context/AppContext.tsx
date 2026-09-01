@@ -30,6 +30,11 @@ import {
   broadcastCloudStatus,
   getCloudActiveStatuses,
 } from '../utils/cloudSync';
+import {
+  saveStatusToDb,
+  getAllActiveStatusesFromDb,
+  deleteStatusFromDb,
+} from '../utils/mediaDb';
 
 export interface CurrentUserData {
   id: string;
@@ -670,15 +675,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Presence updated
       },
       onStatusStory: (incomingStatus) => {
+        const fullStory = incomingStatus as StatusStory;
+        saveStatusToDb(fullStory);
         setStatuses((prev) => {
           const filtered = prev.filter((s) => s.id !== incomingStatus.id);
-          return [incomingStatus as StatusStory, ...filtered];
+          return [fullStory, ...filtered];
         });
       },
     });
 
     return () => unsubscribe();
   }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn]);
+
+  // Restore Active Statuses (including Large Video Stories) from IndexedDB on startup
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    getAllActiveStatusesFromDb().then((dbStatuses) => {
+      if (dbStatuses && dbStatuses.length > 0) {
+        setStatuses((prev) => {
+          const map = new Map<string, StatusStory>();
+          prev.forEach((s) => map.set(s.id, s));
+          dbStatuses.forEach((s) => {
+            if (!map.has(s.id)) map.set(s.id, s);
+          });
+          return Array.from(map.values()).sort(
+            (a, b) => (b.rawTimestamp || 0) - (a.rawTimestamp || 0)
+          );
+        });
+      }
+    });
+  }, [currentUser?.id]);
 
   // Active call timer
   useEffect(() => {
@@ -1394,11 +1420,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       rawTimestamp: rawNow,
       viewers: [],
     };
+    saveStatusToDb(newStatus);
     setStatuses(prev => [newStatus, ...prev]);
     broadcastCloudStatus(currentUser, newStatus);
   };
 
   const deleteStatus = (statusId: string) => {
+    deleteStatusFromDb(statusId);
     setStatuses(prev => prev.filter(s => s.id !== statusId));
   };
 

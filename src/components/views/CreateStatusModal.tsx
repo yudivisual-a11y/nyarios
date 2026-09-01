@@ -93,25 +93,35 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'text') {
-      if (!textContent.trim()) return;
-      createStatus('text', textContent.trim(), undefined, selectedBg);
-    } else if (mode === 'image') {
-      if (!imagePreview) return;
-      createStatus('image', imagePreview, caption.trim());
-    } else if (mode === 'video') {
-      if (!videoPreview) return;
-      createStatus('video', videoPreview, caption.trim());
-    }
+    if (isProcessing) return;
 
-    setTextContent('');
-    setCaption('');
-    setImagePreview(null);
-    setVideoPreview(null);
-    setVideoDuration(null);
-    onClose();
+    try {
+      setIsProcessing(true);
+      if (mode === 'text') {
+        if (!textContent.trim()) return;
+        createStatus('text', textContent.trim(), undefined, selectedBg);
+      } else if (mode === 'image') {
+        if (!imagePreview) return;
+        createStatus('image', imagePreview, caption.trim());
+      } else if (mode === 'video') {
+        if (!videoPreview) return;
+        createStatus('video', videoPreview, caption.trim());
+      }
+
+      setTextContent('');
+      setCaption('');
+      setImagePreview(null);
+      setVideoPreview(null);
+      setVideoDuration(null);
+      setIsProcessing(false);
+      onClose();
+    } catch (err) {
+      console.warn('Submit status error:', err);
+      setIsProcessing(false);
+      onClose();
+    }
   };
 
   return (
@@ -123,6 +133,7 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
           <button
             type="button"
             onClick={onClose}
+            disabled={isProcessing}
             className="flex items-center gap-1.5 p-2 rounded-xl neu-raised-circle text-slate-300 hover:text-white"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -131,10 +142,10 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
 
           <div className="text-center">
             <h2 className="text-sm sm:text-base font-bold text-white">
-              Bagikan Status Baru
+              {isProcessing ? 'Mengirim Status...' : 'Bagikan Status Baru'}
             </h2>
             <p className="text-[11px] text-slate-400">
-              Hilang otomatis setelah 24 jam
+              {isProcessing ? 'Menyiarkan ke teman...' : 'Hilang otomatis setelah 24 jam'}
             </p>
           </div>
 
@@ -149,7 +160,7 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
             }
             className="px-4 py-2 rounded-xl neu-coral-btn text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[#ff4b4b]/30 disabled:opacity-40"
           >
-            <span>Kirim</span>
+            <span>{isProcessing ? 'Mengirim...' : 'Kirim'}</span>
             <Send className="w-3.5 h-3.5" />
           </button>
         </div>

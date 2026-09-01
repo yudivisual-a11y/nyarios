@@ -323,12 +323,23 @@ export async function broadcastCloudStatus(
 
   const cleanSender = normalizeUsername(sender.username || sender.name);
 
-  // 1. Save to local active statuses storage
+  // 1. Save to local active statuses storage (with quota safety)
   try {
     const active = getCloudActiveStatuses();
     const filtered = active.filter((s) => s.id !== status.id);
     const updated = [status, ...filtered];
-    localStorage.setItem(CLOUD_STORAGE_STATUSES_KEY, JSON.stringify(updated));
+    try {
+      localStorage.setItem(CLOUD_STORAGE_STATUSES_KEY, JSON.stringify(updated));
+    } catch {
+      // If localStorage is full from large video, store lightweight metadata
+      const lightweight = updated.map(st => ({
+        ...st,
+        content: st.type === 'video' ? '' : st.content,
+      }));
+      try {
+        localStorage.setItem(CLOUD_STORAGE_STATUSES_KEY, JSON.stringify(lightweight));
+      } catch {}
+    }
   } catch (err) {
     console.warn('Status storage error:', err);
   }
@@ -342,16 +353,49 @@ export async function broadcastCloudStatus(
   const client = getOrCreateMqttClient(cleanSender);
   const stringified = JSON.stringify({ type: 'STATUS_STORY', payload: status });
 
-  const publishStatus = () => {
-    if (stringified.length <= CHUNK_SIZE) {
-      client.publish(STATUS_BROADCAST_TOPIC, stringified, { qos: 1 });
+  const publishToTopic = (data: string) => {
+    if (client.connected) {
+      client.publish(STATUS_BROADCAST_TOPIC, data, { qos: 1 }, (err) => {
+        if (err) console.warn('[NYARIOS Cloud v4] Status publish warning:', err);
+      });
+    } else {
+      client.once('connect', () => {
+        client.publish(STATUS_BROADCAST_TOPIC, data, { qos: 1 });
+      });
     }
   };
 
-  if (client.connected) {
-    publishStatus();
+  if (stringified.length <= CHUNK_SIZE) {
+    publishToTopic(stringified);
   } else {
-    client.once('connect', publishStatus);
+    // Large payload (e.g. video files > 180KB) -> Send in numbered sequential chunks
+    const totalChunks = Math.ceil(stringified.length / CHUNK_SIZE);
+    const chunkStatusId = status.id;
+
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkData = stringified.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      const chunkPayload = JSON.stringify({
+        type: 'CHUNKED_STATUS',
+        chunkStatusId,
+        index: i,
+        total: totalChunks,
+        chunkData,
+      });
+
+      await new Promise<void>((resolve) => {
+        if (client.connected) {
+          client.publish(STATUS_BROADCAST_TOPIC, chunkPayload, { qos: 1 }, () => {
+            setTimeout(resolve, 25);
+          });
+        } else {
+          client.once('connect', () => {
+            client.publish(STATUS_BROADCAST_TOPIC, chunkPayload, { qos: 1 }, () => {
+              setTimeout(resolve, 25);
+            });
+          });
+        }
+      });
+    }
   }
 }
 
@@ -534,6 +578,10 @@ export function subscribeToCloudEvents(
     string,
     { total: number; chunks: Map<number, string>; timer: NodeJS.Timeout }
   >();
+  const statusChunkBufferMap = new Map<
+    string,
+    { total: number; chunks: Map<number, string>; timer: NodeJS.Timeout }
+  >();
 
   const handleIncomingPayload = (type: string, data: any) => {
     try {
@@ -577,6 +625,40 @@ export function subscribeToCloudEvents(
             }
           } catch (e) {
             console.warn('[NYARIOS Cloud v4] Reassembly parse error', e);
+          }
+        }
+      } else if (type === 'CHUNKED_STATUS' && data?.chunkStatusId) {
+        const { chunkStatusId, index, total, chunkData } = data;
+        let entry = statusChunkBufferMap.get(chunkStatusId);
+        if (!entry) {
+          entry = {
+            total,
+            chunks: new Map<number, string>(),
+            timer: setTimeout(() => statusChunkBufferMap.delete(chunkStatusId), 60000),
+          };
+          statusChunkBufferMap.set(chunkStatusId, entry);
+        }
+
+        entry.chunks.set(index, chunkData);
+
+        if (entry.chunks.size === total) {
+          clearTimeout(entry.timer);
+          statusChunkBufferMap.delete(chunkStatusId);
+
+          let fullStr = '';
+          for (let i = 0; i < total; i++) {
+            fullStr += entry.chunks.get(i) || '';
+          }
+
+          try {
+            const reassembled = JSON.parse(fullStr);
+            if (reassembled?.type === 'STATUS_STORY' && reassembled?.payload) {
+              if (handlers.onStatusStory) {
+                handlers.onStatusStory(reassembled.payload);
+              }
+            }
+          } catch (e) {
+            console.warn('[NYARIOS Cloud v4] Status reassembly error', e);
           }
         }
       } else if (type === 'CALL_SIGNAL' && data?.signal) {
@@ -651,8 +733,8 @@ export function subscribeToCloudEvents(
           handleIncomingPayload('USER_PRESENCE', data);
         }
       } else if (topic === STATUS_BROADCAST_TOPIC || topic.includes('/statuses')) {
-        if (data.type === 'STATUS_STORY') {
-          handleIncomingPayload('STATUS_STORY', data);
+        if (data.type === 'STATUS_STORY' || data.type === 'CHUNKED_STATUS') {
+          handleIncomingPayload(data.type, data);
         }
       }
     } catch (err) {
