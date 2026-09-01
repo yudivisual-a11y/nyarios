@@ -1,0 +1,24 @@
+{
+  "name": "NYARIOS - Komunikasi Modern",
+  "short_name": "NYARIOS",
+  "description": "Aplikasi Chat, Komunikasi, dan Kolaborasi Cerdas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#18191d",
+  "theme_color": "#18191d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo-nyarios.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-nyarios.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
