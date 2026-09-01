@@ -1,4 +1,4 @@
-// NYARIOS Service Worker for PWA WebAPK
+// BERES Service Worker for PWA WebAPK
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });

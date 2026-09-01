@@ -2,28 +2,21 @@ import React, { useState } from 'react';
 import { useApp } from './context/AppContext';
 import { DesktopSidebar } from './components/layout/DesktopSidebar';
 import { MobileNavigation } from './components/layout/MobileNavigation';
-import { ChatList } from './components/chat/ChatList';
-import { ChatCanvas } from './components/chat/ChatCanvas';
-import { CommunityView } from './components/views/CommunityView';
-import { HomeView } from './components/views/HomeView';
-import { ReelsView } from './components/views/ReelsView';
-import { DMView } from './components/views/DMView';
-import { ProfileView } from './components/views/ProfileView';
-import { ExploreView } from './components/views/ExploreView';
-import { NotificationsView } from './components/views/NotificationsView';
-import { UploadPostModal } from './components/social/UploadPostModal';
-import { UserProfileModal } from './components/views/UserProfileModal';
-import { ContactsView } from './components/views/ContactsView';
-import { CallsView } from './components/views/CallsView';
-import { ActiveCallModal } from './components/views/ActiveCallModal';
-import { IncomingCallModal } from './components/views/IncomingCallModal';
+import { BeresHome } from './components/views/BeresHome';
+import { BeresWorkspace } from './components/views/BeresWorkspace';
+import { BeresDocumentView } from './components/views/BeresDocumentView';
+import { BeresDataView } from './components/views/BeresDataView';
+import { BeresFinanceView } from './components/views/BeresFinanceView';
+import { BeresScheduleView } from './components/views/BeresScheduleView';
+import { BeresFileView } from './components/views/BeresFileView';
+import { BeresProfileView } from './components/views/BeresProfileView';
+
+// Features / Modals
 import { ActivityTasksView } from './components/views/ActivityTasksView';
 import { ScheduleAgendaView } from './components/views/ScheduleAgendaView';
 import { ProfileSettingsView } from './components/views/ProfileSettingsView';
 import { SavedMessagesView } from './components/features/SavedMessagesView';
 import { FileCenterView } from './components/features/FileCenterView';
-import { NewChatModal } from './components/chat/NewChatModal';
-import { NewGroupModal } from './components/chat/NewGroupModal';
 import { SmartSearchModal } from './components/features/SmartSearchModal';
 import { TaskModal } from './components/features/TaskModal';
 import { ScheduleModal } from './components/features/ScheduleModal';
@@ -38,118 +31,43 @@ import { useHistoryBack } from './utils/useHistoryBack';
 export const App: React.FC = () => {
   const {
     isLoggedIn,
-    currentUser,
     activeNavTab,
-    setActiveNavTab,
-    activeDesktopSubTab,
-    setActiveDesktopSubTab,
-    activeChatId,
-    setActiveChatId,
-    isGroupDetailOpen,
-    setIsGroupDetailOpen,
-    incomingCall,
-    acceptIncomingCall,
-    declineIncomingCall,
-  } = useApp();
+      } = useApp();
 
-  // Modals state
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
-  const [isNewGroupOpen, setIsNewGroupOpen] = useState(false);
   const [isSmartSearchOpen, setIsSmartSearchOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [taskSourceMessage, setTaskSourceMessage] = useState<Message | null>(null);
-  const [taskPrefillTitle, setTaskPrefillTitle] = useState<string | undefined>(undefined);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [scheduleSourceMessage, setScheduleSourceMessage] = useState<Message | null>(null);
-  const [isQuickAskOpen, setIsQuickAskOpen] = useState(false);
-  const [isPollOpen, setIsPollOpen] = useState(false);
   const [isFolderManagerOpen, setIsFolderManagerOpen] = useState(false);
 
-  // Mobile Back Gestures & Device Back Button Handlers
-  useHistoryBack(Boolean(activeChatId), () => setActiveChatId(null), 'chat_canvas');
-  useHistoryBack(isGroupDetailOpen, () => setIsGroupDetailOpen(false), 'group_detail');
-  useHistoryBack(Boolean(activeDesktopSubTab), () => setActiveDesktopSubTab(null), 'desktop_subtab');
-  useHistoryBack(isNewChatOpen, () => setIsNewChatOpen(false), 'new_chat');
-  useHistoryBack(isNewGroupOpen, () => setIsNewGroupOpen(false), 'new_group');
-  useHistoryBack(isSmartSearchOpen, () => setIsSmartSearchOpen(false), 'smart_search');
-  useHistoryBack(isTaskModalOpen, () => setIsTaskModalOpen(false), 'task_modal');
-  useHistoryBack(isScheduleModalOpen, () => setIsScheduleModalOpen(false), 'schedule_modal');
-  useHistoryBack(isQuickAskOpen, () => setIsQuickAskOpen(false), 'quick_ask');
-  useHistoryBack(isPollOpen, () => setIsPollOpen(false), 'poll_modal');
-  useHistoryBack(isFolderManagerOpen, () => setIsFolderManagerOpen(false), 'folder_manager');
-
-  // If user is not logged in, render the Login Screen
+  
   if (!isLoggedIn) {
     return <LoginView />;
   }
 
-  const handleOpenTaskModal = (source?: Message) => {
-    setTaskSourceMessage(source || null);
-    setTaskPrefillTitle(undefined);
-    setIsTaskModalOpen(true);
-  };
-
-  const handleOpenScheduleModal = (source?: Message) => {
-    setScheduleSourceMessage(source || null);
-    setIsScheduleModalOpen(true);
-  };
-
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F8FAFC] dark:bg-[#0B141A] text-slate-800 dark:text-slate-100 font-sans">
-      {/* Desktop Left Sidebar Rail */}
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-[#F8FAFC] dark:bg-[#0B141A] text-slate-900 dark:text-slate-100 font-sans selection:bg-emerald-500/30">
+      
+      {/* Desktop Sidebar (Hidden on Mobile) */}
       <DesktopSidebar />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex overflow-hidden relative">
-        {/* DESKTOP SUB-TABS (Tersimpan, Aktivitas, Jadwal, File Center, Pengaturan) */}
-        {activeDesktopSubTab === 'tersimpan' && <SavedMessagesView />}
-        {activeDesktopSubTab === 'aktivitas' && <ActivityTasksView />}
-        {activeDesktopSubTab === 'jadwal' && <ScheduleAgendaView />}
-        {activeDesktopSubTab === 'file_center' && <FileCenterView />}
-        {activeDesktopSubTab === 'pengaturan' && <ProfileSettingsView />}
-        {activeDesktopSubTab === 'profil_saya' && <UserProfileModal userId={currentUser.id} isOpen={true} onClose={() => setActiveDesktopSubTab(null)} />}
-
-        {/* MAIN NAVIGATION TABS */}
-        {activeDesktopSubTab === null && (
-          <>
-            {/* PESAN VIEW */}
-            {activeNavTab === 'dm' && <DMView />}
-            
-
-                        {/* KONTEN VIEW */}
-            {activeNavTab === 'home' && <HomeView />}
-            {activeNavTab === 'reels' && <ReelsView />}
-            {activeNavTab === 'explore' && <ExploreView />}
-            {activeNavTab === 'activity' && <NotificationsView />}
-
-            {/* KOMUNITAS VIEW */}
-            
-
-            
-
-            {/* PANGGILAN VIEW */}
-            
-
-            {/* SAYA VIEW (MOBILE) */}
-            {activeNavTab === 'profile' && <ProfileView />} 
+      <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#0B141A] relative z-0 overflow-hidden">
+        <>
+            {activeNavTab === 'home' && <BeresHome />}
+            {activeNavTab === 'workspace' && <BeresWorkspace />}
+            {activeNavTab === 'docs' && <BeresDocumentView />}
+            {activeNavTab === 'data' && <BeresDataView />}
+            {activeNavTab === 'finance' && <BeresFinanceView />}
+            {activeNavTab === 'schedule' && <BeresScheduleView />}
+            {activeNavTab === 'files' && <BeresFileView />}
+            {activeNavTab === 'profile' && <BeresProfileView />}
           </>
-        )}
       </main>
 
-      {/* Mobile Bottom Navigation (Hidden when inside active chat on mobile) */}
-      {!activeChatId && <MobileNavigation />}
+      {/* Mobile Bottom Navigation */}
+      <MobileNavigation />
 
       {/* GLOBAL MODALS */}
-      <NewChatModal
-        isOpen={isNewChatOpen}
-        onClose={() => setIsNewChatOpen(false)}
-      />
-
-      <NewGroupModal
-        isOpen={isNewGroupOpen}
-        onClose={() => setIsNewGroupOpen(false)}
-      />
-
       <SmartSearchModal
         isOpen={isSmartSearchOpen}
         onClose={() => setIsSmartSearchOpen(false)}
@@ -158,24 +76,11 @@ export const App: React.FC = () => {
       <TaskModal
         isOpen={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(false)}
-        sourceMessage={taskSourceMessage}
-        prefillTitle={taskPrefillTitle}
-      />
+              />
 
       <ScheduleModal
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
-        sourceMessage={scheduleSourceMessage}
-      />
-
-      <QuickAskCreationModal
-        isOpen={isQuickAskOpen}
-        onClose={() => setIsQuickAskOpen(false)}
-      />
-
-      <PollCreationModal
-        isOpen={isPollOpen}
-        onClose={() => setIsPollOpen(false)}
       />
 
       <FolderManagerModal
@@ -183,14 +88,8 @@ export const App: React.FC = () => {
         onClose={() => setIsFolderManagerOpen(false)}
       />
 
-      <IncomingCallModal
-        incomingCall={incomingCall}
-        onAccept={acceptIncomingCall}
-        onDecline={declineIncomingCall}
-      />
-
-      <ActiveCallModal />
     </div>
   );
 };
+
 export default App;

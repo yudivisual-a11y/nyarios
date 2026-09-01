@@ -1231,7 +1231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (existing) {
       setActiveChatId(existing.id);
-      setActiveNavTab('dm');
+      setActiveNavTab('home');
       if (initialMessage && initialMessage.trim()) {
         sendMessage(existing.id, initialMessage.trim(), 'text', {}, cleanUser);
       }
@@ -1271,7 +1271,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setChats(prev => [newChat, ...prev]);
     setActiveChatId(newChatId);
-    setActiveNavTab('dm');
+    setActiveNavTab('home');
 
     if (initialMessage && initialMessage.trim()) {
       sendMessage(newChatId, initialMessage.trim(), 'text', {}, cleanUser);
@@ -1298,7 +1298,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setChats(prev => [newChat, ...prev]);
     setActiveChatId(newChatId);
-    setActiveNavTab('dm');
+    setActiveNavTab('home');
 
     if (initialMessage && initialMessage.trim()) {
       sendMessage(newChatId, initialMessage.trim(), 'text', {}, phone);
@@ -1351,7 +1351,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }));
 
     setActiveChatId(newChatId);
-    setActiveNavTab('dm');
+    setActiveNavTab('home');
     return newChatId;
   };
 
@@ -1755,7 +1755,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     setCommunities(prev => [newComm, ...prev]);
-    setActiveNavTab('dm');
+    setActiveNavTab('home');
   };
 
   // Status

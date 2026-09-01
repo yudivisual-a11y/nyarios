@@ -123,7 +123,7 @@ export const FileCenterView: React.FC = () => {
 
   const handleJumpToChat = (chatId: string) => {
     setActiveChatId(chatId);
-    setActiveNavTab('dm');
+    setActiveNavTab('home');
     setActiveDesktopSubTab(null);
   };
 

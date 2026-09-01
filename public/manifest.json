@@ -1,6 +1,6 @@
 {
-  "name": "NYARIOS - Komunikasi Modern",
-  "short_name": "NYARIOS",
+  "name": "BERES",
+  "short_name": "BERES",
   "description": "Aplikasi Chat, Komunikasi, dan Kolaborasi Cerdas",
   "start_url": "/",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo-nyarios.jpg",
+      "src": "/logo-beres.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo-nyarios.jpg",
+      "src": "/logo-beres.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"
