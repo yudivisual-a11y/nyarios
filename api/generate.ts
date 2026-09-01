@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 { 
                   "id": "p1",
                   "span": "wide",
-                  "imagePrompt": "Detailed visual scene. Mention characters by their appearance, not just name.", 
+                  "imagePrompt": "Highly descriptive visual prompt for AI image generator. IMPORTANT: Instead of just character names, you MUST write their full visual appearance (hair color, clothes, etc.) inside the prompt so the image generator knows how they look.", 
                   "dialogue": "Hello!",
                   "narration": "Meanwhile..."
                 },

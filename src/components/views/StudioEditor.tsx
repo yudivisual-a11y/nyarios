@@ -189,8 +189,7 @@ export const StudioEditor: React.FC = () => {
                      
                      <div className="flex-1 grid grid-cols-2 gap-3 auto-rows-fr">
                         {currentPage.panels?.map((panel: any, idx: number) => {
-                           const characterContext = project.settings?.characters?.map((c: any) => c.appearance).join(' ') || '';
-                           const finalPrompt = `${panel.imagePrompt} ${characterContext} comic book style, graphic novel`;
+                           const finalPrompt = `${panel.imagePrompt}, vibrant american comic book graphic novel art style, cel shaded, masterwork`;
                            
                            return (
                            <div key={idx} className={`border-[3px] border-slate-900 bg-slate-100 relative group overflow-hidden flex flex-col min-h-[200px] ${panel.span === 'wide' ? 'col-span-2' : 'col-span-1'}`}>
