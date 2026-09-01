@@ -3,6 +3,7 @@ import { useApp } from './context/AppContext';
 import { DesktopSidebar } from './components/layout/DesktopSidebar';
 import { MobileNavigation } from './components/layout/MobileNavigation';
 import { BeresHome } from './components/views/BeresHome';
+import { StudioWizard } from './components/views/StudioWizard';
 import { StudioEditor } from './components/views/StudioEditor';
 import { StudioProjectList } from './components/views/StudioProjectList';
 import { StudioAssetLibrary } from './components/views/StudioAssetLibrary';
@@ -52,6 +53,7 @@ export const App: React.FC = () => {
       <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#0B141A] relative z-0 overflow-hidden">
         <>
             {activeNavTab === 'home' && <BeresHome />}
+            {activeNavTab === 'wizard' && <StudioWizard />}
             {activeNavTab === 'studio' && <StudioEditor />}
             {activeNavTab === 'projects' && <StudioProjectList />}
             {activeNavTab === 'templates' && <StudioTemplateGallery />}

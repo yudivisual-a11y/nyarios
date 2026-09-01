@@ -74,6 +74,8 @@ interface AppContextType {
   activeNavTab: MainNavTab;
   activeProjectId: string | null;
   setActiveProjectId: (id: string | null) => void;
+  activeStudioType: any;
+  setActiveStudioType: (type: any) => void;
   setActiveNavTab: (tab: MainNavTab) => void;
   activeDesktopSubTab: DesktopSubTab | null;
   setActiveDesktopSubTab: (subTab: DesktopSubTab | null) => void;
@@ -233,6 +235,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Navigation state
   const [activeNavTab, setActiveNavTab] = useState<MainNavTab>('home');
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [activeStudioType, setActiveStudioType] = useState<any>('book');
   const [activeDesktopSubTab, setActiveDesktopSubTab] = useState<DesktopSubTab | null>(null);
   const [isGroupDetailOpen, setIsGroupDetailOpen] = useState(false);
 
@@ -1983,6 +1986,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setActiveNavTab,
       activeProjectId,
       setActiveProjectId,
+      activeStudioType,
+      setActiveStudioType,
         activeDesktopSubTab,
         setActiveDesktopSubTab,
         isGroupDetailOpen,

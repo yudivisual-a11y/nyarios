@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { MainNavTab } from '../../types';
 
 export const DesktopSidebar: React.FC = () => {
-  const { activeNavTab, setActiveNavTab, currentUser } = useApp();
+  const { activeNavTab, setActiveNavTab, setActiveStudioType, currentUser } = useApp();
 
   return (
     <div className="hidden md:flex flex-col w-20 lg:w-[260px] h-full bg-[#F8FAFC] dark:bg-[#0B141A] border-r border-slate-200 dark:border-white/10 py-6 transition-all duration-300">
@@ -42,7 +42,7 @@ export const DesktopSidebar: React.FC = () => {
                { id: 'studio_worksheet', label: 'Worksheet', icon: <BookOpen className="w-4 h-4" /> },
                { id: 'studio_illustration', label: 'Ilustrasi', icon: <PenTool className="w-4 h-4" /> },
              ].map(item => (
-               <button key={item.id} onClick={() => setActiveNavTab('studio' as any)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all group text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white font-medium`}>
+               <button key={item.id} onClick={() => { setActiveStudioType(item.id.replace('studio_', '')); setActiveNavTab('wizard'); }} className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all group text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white font-medium`}>
                   <div className="text-slate-400 group-hover:text-emerald-500 transition-colors">{item.icon}</div>
                   <span className="text-[14px]">{item.label}</span>
                </button>

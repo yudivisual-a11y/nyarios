@@ -255,7 +255,7 @@ export interface ContactPerson {
   chatId?: string;
 }
 
-export type MainNavTab = 'home' | 'studio' | 'projects' | 'templates' | 'assets' | 'settings' | 'profile';
+export type MainNavTab = 'home' | 'studio' | 'wizard' | 'projects' | 'templates' | 'assets' | 'settings' | 'profile';
 export type DesktopSubTab = 'tersimpan' | 'aktivitas' | 'jadwal' | 'file_center' | 'pengaturan' | 'profil_saya';
 
 // ==========================================

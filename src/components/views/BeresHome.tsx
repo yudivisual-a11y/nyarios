@@ -6,7 +6,7 @@ import { saveProject } from '../../utils/studioDb';
 import { StudioProject, StudioPage } from '../../types';
 
 export const BeresHome: React.FC = () => {
-  const { setActiveNavTab, setActiveProjectId, currentUser } = useApp();
+  const { setActiveNavTab, setActiveProjectId, setActiveStudioType, currentUser } = useApp();
   const [command, setCommand] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [progressText, setProgressText] = useState('');
@@ -21,24 +21,7 @@ export const BeresHome: React.FC = () => {
     { id: 'illustration', label: 'Ilustrasi', icon: <PenTool className="w-5 h-5" />, color: 'bg-rose-500' },
   ];
 
-  const handleCreateEmpty = (type: string) => {
-    // Generate empty project
-    const id = Date.now().toString();
-    const newProject: StudioProject = {
-      id,
-      userId: currentUser.id,
-      type: type as any,
-      title: 'Project ' + type.toUpperCase() + ' Baru',
-      description: '',
-      status: 'draft',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    saveProject(newProject).then(() => {
-      setActiveProjectId(id);
-      setActiveNavTab('studio');
-    });
-  };
+  const handleCreateEmpty = (type: string) => { setActiveStudioType(type); setActiveNavTab('wizard'); };
 
   const handleCommand = async () => {
     if (!command.trim()) return;
@@ -148,7 +131,7 @@ export const BeresHome: React.FC = () => {
         {/* Quick Actions */}
         <div className="w-full max-w-3xl animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
            <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
-             Atau mulai dari kosong
+             Atau pilih format karya
            </h3>
            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {quickActions.map(action => (
