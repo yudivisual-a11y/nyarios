@@ -352,78 +352,95 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     applyThemeVariables(themeObj);
   }, [accentTheme]);
 
-  // Persist state changes safely
+  // Persist state changes safely (Scoped per-user to prevent data loss on logout)
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem('nyarios_user', JSON.stringify(currentUser));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [currentUser]);
+  }, [currentUser, isLoggedIn]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_chats`, JSON.stringify(chats));
       localStorage.setItem(`${STORAGE_KEY}_chats`, JSON.stringify(chats));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [chats]);
+  }, [chats, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_messages`, JSON.stringify(messages));
       localStorage.setItem(`${STORAGE_KEY}_messages`, JSON.stringify(messages));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [messages]);
+  }, [messages, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_folders`, JSON.stringify(customFolders));
       localStorage.setItem(`${STORAGE_KEY}_folders`, JSON.stringify(customFolders));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [customFolders]);
+  }, [customFolders, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_tasks`, JSON.stringify(tasks));
       localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(tasks));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [tasks]);
+  }, [tasks, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_schedules`, JSON.stringify(schedules));
       localStorage.setItem(`${STORAGE_KEY}_schedules`, JSON.stringify(schedules));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [schedules]);
+  }, [schedules, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_communities`, JSON.stringify(communities));
       localStorage.setItem(`${STORAGE_KEY}_communities`, JSON.stringify(communities));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [communities]);
+  }, [communities, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_statuses`, JSON.stringify(statuses));
       localStorage.setItem(`${STORAGE_KEY}_statuses`, JSON.stringify(statuses));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [statuses]);
+  }, [statuses, isLoggedIn, currentUser?.id]);
 
   useEffect(() => {
+    if (!isLoggedIn || !currentUser?.id) return;
     try {
+      localStorage.setItem(`nyarios_data_${currentUser.id}_calls`, JSON.stringify(callRecords));
       localStorage.setItem(`${STORAGE_KEY}_calls`, JSON.stringify(callRecords));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
-  }, [callRecords]);
+  }, [callRecords, isLoggedIn, currentUser?.id]);
 
   const [incomingCall, setIncomingCall] = useState<IncomingCallSignal | null>(null);
 
@@ -537,11 +554,95 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  const restoreUserData = (userId: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      // 1. Restore Chats
+      const savedChats =
+        localStorage.getItem(`nyarios_data_${userId}_chats`) ||
+        localStorage.getItem(`${STORAGE_KEY}_chats`);
+      if (savedChats) {
+        const parsed = JSON.parse(savedChats);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setChats(parsed);
+        }
+      }
+
+      // 2. Restore Messages
+      const savedMsgs =
+        localStorage.getItem(`nyarios_data_${userId}_messages`) ||
+        localStorage.getItem(`${STORAGE_KEY}_messages`);
+      if (savedMsgs) {
+        const parsed = JSON.parse(savedMsgs);
+        if (parsed && typeof parsed === 'object') {
+          setMessages(parsed);
+        }
+      }
+
+      // 3. Restore Folders
+      const savedFolders =
+        localStorage.getItem(`nyarios_data_${userId}_folders`) ||
+        localStorage.getItem(`${STORAGE_KEY}_folders`);
+      if (savedFolders) {
+        const parsed = JSON.parse(savedFolders);
+        if (Array.isArray(parsed)) setCustomFolders(parsed);
+      }
+
+      // 4. Restore Tasks
+      const savedTasks =
+        localStorage.getItem(`nyarios_data_${userId}_tasks`) ||
+        localStorage.getItem(`${STORAGE_KEY}_tasks`);
+      if (savedTasks) {
+        const parsed = JSON.parse(savedTasks);
+        if (Array.isArray(parsed)) setTasks(parsed);
+      }
+
+      // 5. Restore Schedules
+      const savedSchedules =
+        localStorage.getItem(`nyarios_data_${userId}_schedules`) ||
+        localStorage.getItem(`${STORAGE_KEY}_schedules`);
+      if (savedSchedules) {
+        const parsed = JSON.parse(savedSchedules);
+        if (Array.isArray(parsed)) setSchedules(parsed);
+      }
+
+      // 6. Restore Communities
+      const savedComms =
+        localStorage.getItem(`nyarios_data_${userId}_communities`) ||
+        localStorage.getItem(`${STORAGE_KEY}_communities`);
+      if (savedComms) {
+        const parsed = JSON.parse(savedComms);
+        if (Array.isArray(parsed)) setCommunities(parsed);
+      }
+
+      // 7. Restore Statuses
+      const savedStatuses =
+        localStorage.getItem(`nyarios_data_${userId}_statuses`) ||
+        localStorage.getItem(`${STORAGE_KEY}_statuses`);
+      if (savedStatuses) {
+        const parsed = JSON.parse(savedStatuses);
+        if (Array.isArray(parsed)) setStatuses(parsed);
+      }
+
+      // 8. Restore Call Records
+      const savedCalls =
+        localStorage.getItem(`nyarios_data_${userId}_calls`) ||
+        localStorage.getItem(`${STORAGE_KEY}_calls`);
+      if (savedCalls) {
+        const parsed = JSON.parse(savedCalls);
+        if (Array.isArray(parsed)) setCallRecords(parsed);
+      }
+    } catch (err) {
+      console.warn('Restore user data notice', err);
+    }
+  };
+
   const loginWithPhone = (phone: string, name?: string) => {
     const normalized = normalizePhoneNumber(phone);
     const digits = normalized.replace(/\D/g, '');
+    const userId = `user_${digits}`;
     const newUser: CurrentUserData = {
-      id: `user_${digits}`,
+      id: userId,
       name: name?.trim() || 'Pengguna NYARIOS',
       bio: 'Menggunakan NYARIOS',
       avatar: '',
@@ -549,6 +650,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     setCurrentUser(newUser);
+    restoreUserData(userId);
     registerUserOnCloud(newUser);
     setIsLoggedIn(true);
     localStorage.setItem('nyarios_is_logged_in', 'true');
@@ -566,6 +668,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       email,
     };
     setCurrentUser(newUser);
+    restoreUserData(cleanId);
     registerUserOnCloud(newUser);
     setIsLoggedIn(true);
     localStorage.setItem('nyarios_is_logged_in', 'true');
