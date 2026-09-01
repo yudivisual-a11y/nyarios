@@ -137,15 +137,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
+  const handleDownloadMedia = (src: string, defaultName: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = src.startsWith('data:') ? src : `data:application/octet-stream;charset=utf-8,${encodeURIComponent(src)}`;
+      link.download = defaultName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.warn('Download error', e);
+    }
+  };
+
   const handleDownloadDoc = () => {
     const fileName = message.fileName || 'Dokumen_NYARIOS.pdf';
     const src = message.fileUrl || message.content;
-    const link = document.createElement('a');
-    link.href = src.startsWith('data:') ? src : `data:text/plain;charset=utf-8,${encodeURIComponent(src)}`;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    handleDownloadMedia(src, fileName);
   };
 
   const reactionList = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -208,17 +216,39 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* 2. IMAGE MESSAGE */}
           {message.type === 'image' && (
             <div className="space-y-1.5">
-              <div
-                className="relative rounded-xl overflow-hidden cursor-pointer group/img"
-                onClick={() => setIsPhotoLightboxOpen(true)}
-              >
+              <div className="relative rounded-xl overflow-hidden group/img">
                 <img
                   src={message.content}
                   alt="Foto"
-                  className="rounded-xl max-h-72 w-full object-cover hover:scale-105 transition-transform duration-300"
+                  className="rounded-xl max-h-72 w-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                  onClick={() => setIsPhotoLightboxOpen(true)}
                 />
-                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
-                  <Maximize2 className="w-5 h-5" />
+                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover/img:opacity-100 transition-opacity z-10">
+                  <button
+                    type="button"
+                    title="Simpan / Download Foto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadMedia(
+                        message.content,
+                        message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
+                      );
+                    }}
+                    className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20"
+                  >
+                    <Download className="w-4 h-4 text-emerald-400" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Perbesar"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsPhotoLightboxOpen(true);
+                    }}
+                    className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
               {message.caption && message.caption !== message.content && (
@@ -230,7 +260,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* 2.5 VIDEO MESSAGE */}
           {message.type === 'video' && (
             <div className="space-y-1.5 min-w-[240px]">
-              <div className="relative rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-lg">
+              <div className="relative rounded-2xl overflow-hidden bg-black/60 border border-white/10 shadow-lg group/vid">
                 <video
                   src={message.content}
                   controls
@@ -238,6 +268,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   preload="metadata"
                   className="rounded-2xl max-h-72 w-full object-contain"
                 />
+                <button
+                  type="button"
+                  title="Simpan / Download Video"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadMedia(
+                      message.content,
+                      message.fileName || `Video_NYARIOS_${Date.now()}.mp4`
+                    );
+                  }}
+                  className="absolute top-2 right-2 p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md opacity-0 group-hover/vid:opacity-100 transition-all hover:scale-110 shadow-lg border border-white/20 z-10"
+                >
+                  <Download className="w-4 h-4 text-emerald-400" />
+                </button>
               </div>
               {message.caption && message.caption !== message.content && (
                 <p className="text-xs sm:text-sm pt-1">{message.caption}</p>
@@ -519,15 +563,31 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Lightbox Photo Modal */}
       {isPhotoLightboxOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
           onClick={() => setIsPhotoLightboxOpen(false)}
         >
-          <button
-            onClick={() => setIsPhotoLightboxOpen(false)}
-            className="absolute top-4 right-4 p-2 rounded-full neu-raised-circle text-white"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2.5 z-50">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadMedia(
+                  message.content,
+                  message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
+                );
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg transition-transform hover:scale-105"
+            >
+              <Download className="w-4 h-4" />
+              <span>Simpan Foto</span>
+            </button>
+            <button
+              onClick={() => setIsPhotoLightboxOpen(false)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
           <img
             src={message.content}
             alt="Foto Fullscreen"
@@ -545,6 +605,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           } top-6 z-40 w-48 bg-[#23262c] rounded-2xl shadow-2xl border border-white/10 py-1.5 text-xs text-slate-200 animate-fade-in neu-flat`}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Direct Download Option for Media */}
+          {(message.type === 'image' || message.type === 'video' || message.type === 'document' || message.type === 'voice_note') && (
+            <button
+              onClick={() => {
+                const src = message.fileUrl || message.content;
+                let defaultName = message.fileName;
+                if (!defaultName) {
+                  if (message.type === 'image') defaultName = `Foto_NYARIOS_${Date.now()}.jpg`;
+                  else if (message.type === 'video') defaultName = `Video_NYARIOS_${Date.now()}.mp4`;
+                  else if (message.type === 'voice_note') defaultName = `Suara_NYARIOS_${Date.now()}.wav`;
+                  else defaultName = `Dokumen_NYARIOS_${Date.now()}.pdf`;
+                }
+                handleDownloadMedia(src, defaultName);
+                setShowMenu(false);
+              }}
+              className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 hover:bg-[#2c3038] text-emerald-400 font-semibold"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Simpan ke Perangkat</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               onReply(message);
