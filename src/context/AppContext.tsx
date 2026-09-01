@@ -72,6 +72,8 @@ interface AppContextType {
   accentTheme: string;
   setAccentTheme: (themeId: string) => void;
   activeNavTab: MainNavTab;
+  activeProjectId: string | null;
+  setActiveProjectId: (id: string | null) => void;
   setActiveNavTab: (tab: MainNavTab) => void;
   activeDesktopSubTab: DesktopSubTab | null;
   setActiveDesktopSubTab: (subTab: DesktopSubTab | null) => void;
@@ -230,6 +232,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Navigation state
   const [activeNavTab, setActiveNavTab] = useState<MainNavTab>('home');
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeDesktopSubTab, setActiveDesktopSubTab] = useState<DesktopSubTab | null>(null);
   const [isGroupDetailOpen, setIsGroupDetailOpen] = useState(false);
 
@@ -1977,7 +1980,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         accentTheme,
         setAccentTheme,
         activeNavTab,
-        setActiveNavTab,
+      setActiveNavTab,
+      activeProjectId,
+      setActiveProjectId,
         activeDesktopSubTab,
         setActiveDesktopSubTab,
         isGroupDetailOpen,
