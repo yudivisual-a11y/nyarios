@@ -465,10 +465,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           minute: '2-digit',
         });
 
-        setChats((prevChats) => {
-          const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
-          const senderPhone = payload.senderPhone ? normalizePhoneNumber(payload.senderPhone) : '';
+        const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
+        const senderPhone = payload.senderPhone ? normalizePhoneNumber(payload.senderPhone) : '';
+        const targetIdentifier = senderUser || senderPhone || payload.senderId || 'user';
+        const defaultChatId = `chat_direct_${targetIdentifier}`;
 
+        setChats((prevChats) => {
           const existing = prevChats.find((c) => {
             if (senderUser && c.username) {
               return normalizeUsername(c.username) === senderUser;
@@ -479,14 +481,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             if (senderUser && c.name) {
               return normalizeUsername(c.name) === senderUser;
             }
-            return false;
+            return c.id === defaultChatId;
           });
-          const chatId = existing ? existing.id : `chat_cloud_${Date.now()}`;
+
+          const activeId = existing ? existing.id : defaultChatId;
 
           const incomingMsg: Message = {
             ...payload.message,
             id: payload.message.id || `msg_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            chatId,
+            chatId: activeId,
             senderId: payload.senderId,
             senderName: payload.senderName,
             senderAvatar: payload.senderAvatar,
@@ -496,13 +499,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           };
 
           setMessages((prevMsgs) => {
-            const list = prevMsgs[chatId] || [];
+            const list = prevMsgs[activeId] || [];
             if (list.some(m => m.id === incomingMsg.id || (m.rawTimestamp === incomingMsg.rawTimestamp && m.content === incomingMsg.content))) {
               return prevMsgs;
             }
             return {
               ...prevMsgs,
-              [chatId]: [...list, incomingMsg],
+              [activeId]: [...list, incomingMsg],
             };
           });
 
@@ -524,14 +527,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             );
           } else {
             const newChat: Chat = {
-              id: chatId,
+              id: activeId,
               isGroup: false,
-              name: payload.senderName || `@${senderUser}`,
+              name: payload.senderName || (senderUser ? `@${senderUser}` : 'Teman Baru'),
               username: payload.senderUsername || (senderUser ? `@${senderUser}` : undefined),
               phone: payload.senderPhone,
               avatar: payload.senderAvatar,
               bio: 'Teman di NYARIOS',
-              unreadCount: activeChatIdRef.current === chatId ? 0 : 1,
+              unreadCount: activeChatIdRef.current === activeId ? 0 : 1,
               isPinned: false,
               isMuted: false,
               isArchived: false,
@@ -760,7 +763,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Create direct chat via Username (@username)
   const createDirectChatWithUsername = (username: string, name?: string, initialMessage?: string): string => {
     const cleanUser = username.startsWith('@') ? username : `@${username}`;
-    const existing = chats.find(c => c.username && c.username.toLowerCase() === cleanUser.toLowerCase());
+    const cleanRaw = normalizeUsername(username);
+    const existing = chats.find(c => {
+      if (c.username && normalizeUsername(c.username) === cleanRaw) return true;
+      if (c.name && normalizeUsername(c.name) === cleanRaw) return true;
+      return false;
+    });
+
     if (existing) {
       setActiveChatId(existing.id);
       setActiveNavTab('pesan');
@@ -770,7 +779,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return existing.id;
     }
 
-    const newChatId = `chat_${Date.now()}`;
+    const newChatId = `chat_direct_${cleanRaw || Date.now()}`;
     const newChat: Chat = {
       id: newChatId,
       isGroup: false,
