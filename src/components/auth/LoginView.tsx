@@ -97,9 +97,9 @@ export const LoginView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between items-center bg-white text-gray-800 px-4 sm:px-6 pt-6 pb-10 select-none overflow-y-auto relative">
+    <div className="min-h-screen w-full flex flex-col justify-between items-center bg-[#18191d] text-slate-100 px-4 sm:px-6 pt-6 pb-10 select-none overflow-y-auto relative">
       {/* Background ambient glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-emerald-500/15 via-green-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-[#ff4b4b]/15 via-orange-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       {/* ============================================================ */}
       {/* SPLASH SCREEN — Mangga Ka Lebet */}
@@ -108,8 +108,8 @@ export const LoginView: React.FC = () => {
         <div className="flex flex-col items-center justify-center min-h-screen w-full animate-fade-in space-y-8">
           {/* Logo baru */}
           <div className="relative group">
-            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-400 rounded-[40px] blur-2xl opacity-30 animate-pulse" />
-            <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-[36px] overflow-hidden shadow-2xl border-4 border-gray-100 bg-white">
+            <div className="absolute -inset-4 bg-gradient-to-r from-[#ff4b4b] via-orange-500 to-[#ff6b6b] rounded-[40px] blur-2xl opacity-30 animate-pulse" />
+            <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-[36px] overflow-hidden shadow-2xl border-4 border-white/10 bg-[#1e2025]">
               <img
                 src="/logo-nyarios.jpg"
                 alt="NYARIOS Logo"
@@ -120,34 +120,34 @@ export const LoginView: React.FC = () => {
 
           {/* Teks sambutan */}
           <div className="text-center space-y-2">
-            <h1 className="text-4xl sm:text-5xl font-black text-gray-900 tracking-tight">
+            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
               Mangga Ka Lebet
             </h1>
-            <p className="text-sm text-gray-500 font-medium">Silakan Masuk</p>
+            <p className="text-sm text-slate-400 font-medium">Silakan Masuk ke NYARIOS</p>
           </div>
 
           {/* Tombol masuk */}
           <button
             onClick={() => setShowSplash(false)}
-            className="mt-4 px-10 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base shadow-xl hover:scale-105 active:scale-95 transition-transform flex items-center gap-3 cursor-pointer"
+            className="mt-4 px-10 py-4 rounded-2xl bg-gradient-to-r from-[#ff5757] to-[#e63939] text-white font-bold text-base shadow-xl shadow-[#ff4b4b]/30 hover:scale-105 active:scale-95 transition-transform flex items-center gap-3 cursor-pointer"
           >
             <span>Ayo Mulai</span>
             <ArrowRight className="w-5 h-5" />
           </button>
 
           {/* Meta credit */}
-          <p className="text-[11px] text-gray-400 font-medium">From Acep Yudi Heryadi</p>
+          <p className="text-[11px] text-slate-500 font-medium">From Acep Yudi Heryadi</p>
         </div>
       ) : (
         <>
           {/* Top Header Status Tag */}
           <div className="w-full max-w-md flex items-center justify-between z-10">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold shadow-sm">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#23262c] border border-white/10 text-emerald-400 text-[10px] font-bold shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Server Aktif • 2026</span>
             </div>
-            <span className="text-[10px] uppercase font-mono font-extrabold tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 shadow-sm">
-              v2.0 PRO
+            <span className="text-[10px] uppercase font-mono font-extrabold tracking-widest text-[#ff6b6b] bg-[#23262c] px-3 py-1 rounded-full border border-white/10 shadow-sm">
+              v3.0 PRO
             </span>
           </div>
 
@@ -157,9 +157,9 @@ export const LoginView: React.FC = () => {
             <div className="flex flex-col items-center space-y-3">
               <div className="relative group cursor-pointer">
                 {/* Ambient glow */}
-                <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-400 rounded-3xl blur-xl opacity-25 group-hover:opacity-50 transition duration-500 animate-pulse" />
+                <div className="absolute -inset-2 bg-gradient-to-r from-[#ff4b4b] via-orange-500 to-[#ff6b6b] rounded-3xl blur-xl opacity-25 group-hover:opacity-50 transition duration-500 animate-pulse" />
                 {/* Logo container */}
-                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-emerald-100 shadow-xl group-hover:scale-105 transition-transform bg-white">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border-2 border-white/10 shadow-xl group-hover:scale-105 transition-transform bg-[#1e2025]">
                   <img
                     src="/logo-nyarios.jpg"
                     alt="NYARIOS Logo"
@@ -169,25 +169,25 @@ export const LoginView: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 flex items-center justify-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
                   <span>NYARIOS</span>
                 </h1>
-                <p className="text-xs text-gray-500 font-medium tracking-wide">
+                <p className="text-xs text-slate-400 font-medium tracking-wide">
                   Aplikasi Komunikasi Modern Berbasis @Username
                 </p>
               </div>
 
               {/* Micro Trust Pills */}
               <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-[10px] text-emerald-800 font-medium">
-                  <Lock className="w-3 h-3 text-emerald-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#23262c] border border-white/10 text-[10px] text-emerald-400 font-medium">
+                  <Lock className="w-3 h-3 text-emerald-400" />
                   <span>Privasi Aman (@Username)</span>
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-[10px] text-amber-800 font-medium">
-                  <Sparkles className="w-3 h-3 text-amber-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#23262c] border border-white/10 text-[10px] text-amber-400 font-medium">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
                   <span>Bebas Ribet OTP</span>
                 </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-[10px] text-gray-700 font-medium">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#23262c] border border-white/10 text-[10px] text-slate-300 font-medium">
                   <span>🇮🇩 Indonesia</span>
                 </span>
               </div>
@@ -196,19 +196,19 @@ export const LoginView: React.FC = () => {
             {/* ========================================================================= */}
             {/* LOGIN CONTAINER CARD */}
             {/* ========================================================================= */}
-            <div className="w-full bg-white rounded-3xl p-5 sm:p-7 shadow-xl border border-gray-100 space-y-5 text-left">
+            <div className="w-full bg-[#1e2025] rounded-3xl p-5 sm:p-7 shadow-2xl border border-white/10 space-y-5 text-left neu-raised">
               {/* Method Switcher Tabs */}
-              <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-gray-100 border border-gray-200/70">
+              <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#141518] border border-white/5">
                 <button
                   type="button"
                   onClick={() => {
                     setActiveMode('username');
                     setErrorMessage('');
                   }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     activeMode === 'username'
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-[#ff5757] to-[#e63939] text-white shadow-md shadow-[#ff4b4b]/25'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   <AtSign className="w-3.5 h-3.5" />
@@ -221,10 +221,10 @@ export const LoginView: React.FC = () => {
                     setActiveMode('google');
                     setErrorMessage('');
                   }}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                     activeMode === 'google'
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-gradient-to-r from-[#ff5757] to-[#e63939] text-white shadow-md shadow-[#ff4b4b]/25'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
@@ -243,7 +243,7 @@ export const LoginView: React.FC = () => {
 
               {/* Error Banner */}
               {errorMessage && (
-                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 animate-fade-in">
+                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
                   <span className="shrink-0 font-bold text-sm">⚠</span>
                   <span>{errorMessage}</span>
                 </div>
@@ -256,74 +256,78 @@ export const LoginView: React.FC = () => {
                 <form onSubmit={handleUsernameSubmit} className="space-y-3.5 animate-fade-in">
                   {/* Field: Username Unik */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700 flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
                       <span>Username Unik Anda</span>
-                      <span className="text-[10px] text-emerald-600 font-medium">Contoh: @acepyudi</span>
+                      <span className="text-[10px] text-[#ff6b6b] font-medium">Contoh: @acepyudi</span>
                     </label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3.5 text-gray-400 font-bold text-xs">@</span>
+                      <span className="absolute left-3.5 text-slate-400 font-bold text-xs">@</span>
                       <input
                         type="text"
                         required
                         value={username.replace(/^@+/, '')}
                         onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
                         placeholder="username_kamu"
-                        className="w-full pl-8 pr-4 py-2.5 rounded-2xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white transition-all font-mono font-bold shadow-sm"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-8 pr-4 py-2.5 rounded-2xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] focus:bg-[#101114] transition-all font-mono font-bold shadow-inner"
                       />
                     </div>
                   </div>
 
                   {/* Field: Nama Lengkap */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700">Nama Tampilan</label>
+                    <label className="text-[11px] font-bold text-slate-300">Nama Tampilan</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="Contoh: Acep Yudi Heryadi"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white transition-all shadow-sm"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] focus:bg-[#101114] transition-all font-semibold shadow-inner"
                       />
                     </div>
                   </div>
 
                   {/* Field: Email (Opsional) */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700">
-                      Email <span className="text-[10px] text-gray-400 font-normal">(Opsional)</span>
+                    <label className="text-[11px] font-bold text-slate-300">
+                      Email <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="email@example.com"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white transition-all shadow-sm"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] focus:bg-[#101114] transition-all shadow-inner"
                       />
                     </div>
                   </div>
 
                   {/* Field: Kata Sandi */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700">
-                      Kata Sandi <span className="text-[10px] text-gray-400 font-normal">(Opsional/Minimal 6 huruf)</span>
+                    <label className="text-[11px] font-bold text-slate-300">
+                      Kata Sandi <span className="text-[10px] text-slate-400 font-normal">(Opsional/Minimal 6 huruf)</span>
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white transition-all shadow-sm"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] focus:bg-[#101114] transition-all shadow-inner"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -334,7 +338,7 @@ export const LoginView: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer mt-2"
+                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#ff5757] to-[#e63939] hover:from-[#ff4b4b] hover:to-[#d63030] text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#ff4b4b]/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer mt-2"
                   >
                     {isSubmitting ? (
                       <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -354,14 +358,14 @@ export const LoginView: React.FC = () => {
               {/* ========================================================================= */}
               {activeMode === 'google' && (
                 <div className="space-y-4 animate-fade-in">
-                  <p className="text-xs text-gray-600 text-center">
+                  <p className="text-xs text-slate-400 text-center">
                     Masuk cepat dan aman menggunakan akun Google terverifikasi Anda
                   </p>
 
                   <button
                     type="button"
                     onClick={() => setIsGoogleModalOpen(true)}
-                    className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-gray-50 active:scale-[0.98] text-gray-800 border border-gray-200 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-md transition-all cursor-pointer group"
+                    className="w-full py-3.5 px-4 rounded-2xl bg-[#141518] hover:bg-[#101114] active:scale-[0.98] text-white border border-white/10 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-3 shadow-md transition-all cursor-pointer group"
                   >
                     <svg className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                       <path
@@ -387,8 +391,8 @@ export const LoginView: React.FC = () => {
               )}
 
               {/* Privacy Note Footer */}
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-center gap-1.5 text-[10px] text-gray-500">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="pt-2 border-t border-white/5 flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Privasi data & percakapan terenkripsi End-to-End</span>
               </div>
             </div>
@@ -398,18 +402,18 @@ export const LoginView: React.FC = () => {
           {/* GOOGLE SIGN-IN MODAL DIALOG */}
           {/* ========================================================================= */}
           {isGoogleModalOpen && (
-            <div className="fixed inset-0 z-50 p-4 bg-black/50 backdrop-blur-sm flex items-center justify-center select-none animate-fade-in">
-              <div className="w-full max-w-sm rounded-3xl bg-white border border-gray-100 p-6 space-y-4 shadow-2xl relative animate-slide-up">
+            <div className="fixed inset-0 z-50 p-4 bg-black/70 backdrop-blur-sm flex items-center justify-center select-none animate-fade-in">
+              <div className="w-full max-w-sm rounded-3xl bg-[#1e2025] border border-white/10 p-6 space-y-4 shadow-2xl relative animate-slide-up text-left neu-raised">
                 <button
                   type="button"
                   onClick={() => setIsGoogleModalOpen(false)}
-                  className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                  className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
 
                 <div className="text-center space-y-1.5 pt-1">
-                  <div className="inline-flex p-2 rounded-2xl bg-gray-50 border border-gray-100 shadow-sm">
+                  <div className="inline-flex p-2 rounded-2xl bg-[#141518] border border-white/10 shadow-sm">
                     <svg className="w-6 h-6" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
@@ -429,50 +433,53 @@ export const LoginView: React.FC = () => {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900">Masuk Akun Google</h3>
-                  <p className="text-[11px] text-gray-500">Tentukan ID akun Google Anda</p>
+                  <h3 className="text-sm font-bold text-white">Masuk Akun Google</h3>
+                  <p className="text-[11px] text-slate-400">Tentukan ID akun Google Anda</p>
                 </div>
 
                 <form onSubmit={handleGoogleSubmit} className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700">Email Google</label>
+                    <label className="text-[11px] font-bold text-slate-300">Email Google</label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="email"
                         required
                         value={googleEmail}
                         onChange={(e) => setGoogleEmail(e.target.value)}
                         placeholder="nama@gmail.com"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white shadow-sm"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] shadow-inner font-medium"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700">Username (@)</label>
+                    <label className="text-[11px] font-bold text-slate-300">Username (@)</label>
                     <div className="relative flex items-center">
-                      <span className="absolute left-3.5 text-gray-400 font-bold text-xs">@</span>
+                      <span className="absolute left-3.5 text-slate-400 font-bold text-xs">@</span>
                       <input
                         type="text"
                         value={googleUsername.replace(/^@+/, '')}
                         onChange={(e) => setGoogleUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
                         placeholder="username_anda"
-                        className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white shadow-sm font-mono font-bold"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] shadow-inner font-mono font-bold"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-gray-700">Nama Tampilan</label>
+                    <label className="text-[11px] font-bold text-slate-300">Nama Tampilan</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
                         value={googleName}
                         onChange={(e) => setGoogleName(e.target.value)}
                         placeholder="Acep Yudi"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 text-xs text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 focus:border-emerald-500 focus:bg-white shadow-sm"
+                        style={{ color: '#ffffff', backgroundColor: '#141518' }}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141518] text-xs text-white placeholder:text-slate-500 outline-none border border-white/10 focus:border-[#ff4b4b] shadow-inner font-medium"
                       />
                     </div>
                   </div>
@@ -480,7 +487,7 @@ export const LoginView: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 mt-2 shadow-lg shadow-emerald-600/25 cursor-pointer"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#ff5757] to-[#e63939] hover:from-[#ff4b4b] hover:to-[#d63030] text-white text-xs font-bold flex items-center justify-center gap-2 mt-2 shadow-lg shadow-[#ff4b4b]/25 cursor-pointer"
                   >
                     {isSubmitting ? (
                       <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
@@ -494,8 +501,8 @@ export const LoginView: React.FC = () => {
           )}
 
           {/* Footer meta credit */}
-          <p className="text-[11px] text-gray-400 text-center z-10 mt-2">
-            From <span className="font-semibold text-gray-600">Acep Yudi Heryadi</span>
+          <p className="text-[11px] text-slate-500 text-center z-10 mt-2">
+            From <span className="font-semibold text-slate-400">Acep Yudi Heryadi</span>
           </p>
         </>
       )}
