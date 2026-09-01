@@ -140,19 +140,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Theme state
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
+      // v2.1 migration: reset tema ke light untuk semua pengguna lama
+      const appVersion = localStorage.getItem('nyarios_app_version');
+      if (appVersion !== '2.1') {
+        localStorage.setItem('nyarios_theme', 'light');
+        localStorage.setItem('nyarios_app_version', '2.1');
+        return 'light';
+      }
       const savedTheme = localStorage.getItem('nyarios_theme');
       if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme;
     }
     return 'light';
   });
 
-  // Accent Color Theme (14 modern color themes)
+  // Accent Color Theme (15 modern color themes)
   const [accentTheme, setAccentThemeState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
+      const appVersion = localStorage.getItem('nyarios_app_version');
+      if (appVersion !== '2.2') {
+        localStorage.setItem('nyarios_accent_theme', 'nyarios_light');
+        localStorage.setItem('nyarios_theme', 'light');
+        localStorage.setItem('nyarios_app_version', '2.2');
+        return 'nyarios_light';
+      }
       const saved = localStorage.getItem('nyarios_accent_theme');
       if (saved) return saved;
     }
-    return 'coral_sunset';
+    return 'nyarios_light';
   });
 
   const setAccentTheme = (themeId: string) => {
