@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   Users,
+  User,
   Search,
   UserPlus,
   MessageSquare,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
+import { UserProfileModal } from './UserProfileModal';
 import { sound } from '../../utils/sound';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 import { ContactPerson } from '../../types';
@@ -38,6 +40,7 @@ export const ContactsView: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [viewProfileId, setViewProfileId] = useState<string | null>(null);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [newContactUsername, setNewContactUsername] = useState('');
@@ -341,6 +344,13 @@ export const ContactsView: React.FC = () => {
                       <Video className="w-4 h-4" />
                     </button>
 
+                    <button
+                      onClick={() => setViewProfileId(contact.id)}
+                      className="px-3.5 py-2 rounded-xl neu-raised text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Profil</span>
+                    </button>
                     <button
                       onClick={() => handleStartChatWithContact(contact)}
                       className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] transition-all cursor-pointer active:scale-95"

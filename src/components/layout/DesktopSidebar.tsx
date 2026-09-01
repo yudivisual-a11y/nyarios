@@ -1,7 +1,6 @@
 import { PlaySquare,
   MessageSquare,
   Users2,
-  CircleDot,
   Phone,
   BookUser,
   Bookmark,
@@ -30,9 +29,7 @@ export const DesktopSidebar: React.FC = () => {
 
   const totalUnread = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
   const pendingTasks = tasks.filter(t => t.status !== 'done').length;
-  const otherUnreadStatuses = statuses.filter(
-    (s) => s.userId !== currentUser.id && (!s.viewers || !s.viewers.includes(currentUser.name))
-  ).length;
+  
 
   const mainNavItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     {
@@ -56,12 +53,7 @@ export const DesktopSidebar: React.FC = () => {
       label: 'Komunitas',
       icon: <Users2 className="w-5 h-5" />,
     },
-    {
-      id: 'status',
-      label: 'Status',
-      icon: <CircleDot className="w-5 h-5" />,
-      badge: otherUnreadStatuses > 0 ? otherUnreadStatuses : undefined,
-    },
+    
     {
       id: 'panggilan',
       label: 'Panggilan',
@@ -185,7 +177,7 @@ export const DesktopSidebar: React.FC = () => {
       {/* Footer Profile */}
       <div className="p-3.5 border-t border-white/5 bg-[#16171a]/60">
         <div
-          onClick={() => setActiveDesktopSubTab('pengaturan')}
+          onClick={() => setActiveDesktopSubTab('profil_saya')}
           className="flex items-center gap-3 p-2 rounded-2xl hover:bg-[#202227] cursor-pointer transition-colors"
         >
           <Avatar name={currentUser.name} src={currentUser.avatar} size="sm" isOnline={true} />

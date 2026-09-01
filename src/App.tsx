@@ -6,7 +6,7 @@ import { ChatList } from './components/chat/ChatList';
 import { ChatCanvas } from './components/chat/ChatCanvas';
 import { CommunityView } from './components/views/CommunityView';
 import { ContentView } from './components/views/ContentView';
-import { StatusView } from './components/views/StatusView';
+import { UserProfileModal } from './components/views/UserProfileModal';
 import { ContactsView } from './components/views/ContactsView';
 import { CallsView } from './components/views/CallsView';
 import { ActiveCallModal } from './components/views/ActiveCallModal';
@@ -32,6 +32,7 @@ import { useHistoryBack } from './utils/useHistoryBack';
 export const App: React.FC = () => {
   const {
     isLoggedIn,
+    currentUser,
     activeNavTab,
     setActiveNavTab,
     activeDesktopSubTab,
@@ -100,6 +101,7 @@ export const App: React.FC = () => {
         {activeDesktopSubTab === 'jadwal' && <ScheduleAgendaView />}
         {activeDesktopSubTab === 'file_center' && <FileCenterView />}
         {activeDesktopSubTab === 'pengaturan' && <ProfileSettingsView />}
+        {activeDesktopSubTab === 'profil_saya' && <UserProfileModal userId={currentUser.id} isOpen={true} onClose={() => setActiveDesktopSubTab(null)} />}
 
         {/* MAIN NAVIGATION TABS */}
         {activeDesktopSubTab === null && (
@@ -154,14 +156,13 @@ export const App: React.FC = () => {
             {/* KOMUNITAS VIEW */}
             {activeNavTab === 'komunitas' && <CommunityView />}
 
-            {/* STATUS VIEW */}
-            {activeNavTab === 'status' && <StatusView />}
+            
 
             {/* PANGGILAN VIEW */}
             {activeNavTab === 'panggilan' && <CallsView />}
 
             {/* SAYA VIEW (MOBILE) */}
-            {activeNavTab === 'saya' && <ProfileSettingsView />}
+            {activeNavTab === 'saya' && <UserProfileModal userId={currentUser.id} isOpen={true} onClose={() => setActiveNavTab('pesan')} />}
           </>
         )}
       </main>

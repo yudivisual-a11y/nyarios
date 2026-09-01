@@ -2,8 +2,8 @@ import React from 'react';
 import { PlaySquare,
   MessageSquare,
   BookUser,
-  Camera,
-  Users2,
+  Phone,
+  UserCircle,Users2,
   Settings,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -13,9 +13,7 @@ export const MobileNavigation: React.FC = () => {
   const { activeNavTab, setActiveNavTab, chats, statuses, currentUser } = useApp();
 
   const totalUnread = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-  const otherUnreadStatuses = statuses.filter(
-    (s) => s.userId !== currentUser.id && (!s.viewers || !s.viewers.includes(currentUser.name))
-  ).length;
+  
 
   const navItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number | string }[] = [
     {
@@ -34,21 +32,21 @@ export const MobileNavigation: React.FC = () => {
       label: 'Konten',
       icon: <PlaySquare className="w-5 h-5" />,
     },
-    {
-      id: 'status',
-      label: 'Status',
-      icon: <Camera className="w-5 h-5" />,
-      badge: otherUnreadStatuses > 0 ? otherUnreadStatuses : undefined,
-    },
+    
     {
       id: 'komunitas',
       label: 'Komunitas',
       icon: <Users2 className="w-5 h-5" />,
     },
+        {
+      id: 'panggilan',
+      label: 'Panggilan',
+      icon: <Phone className="w-5 h-5" />,
+    },
     {
       id: 'saya',
-      label: 'Pengaturan',
-      icon: <Settings className="w-5 h-5" />,
+      label: 'Profil',
+      icon: <UserCircle className="w-5 h-5" />,
     },
   ];
 

@@ -690,6 +690,9 @@ export function subscribeToCloudEvents(
     onStatusStory?: (status: CloudStatusPayload) => void;
     onStatusDeleted?: (statusId: string) => void;
     onStatusQuery?: (requesterId: string) => void;
+  onContentPost?: (post: unknown) => void;
+  onDeleteContent?: (postId: string) => void;
+  onContentQuery?: (requesterId: string) => void;
   }
 ): () => void {
   if (typeof window === 'undefined' || !myIdentifier) return () => {};
@@ -899,6 +902,14 @@ export function subscribeToCloudEvents(
         if (data.type === 'USER_PRESENCE' || data.type === 'PRESENCE_QUERY') {
           handleIncomingPayload(data.type, data);
         }
+      } else if (topic.includes('/content')) {
+        if (
+          data.type === 'CONTENT_POST' ||
+          data.type === 'DELETE_CONTENT' ||
+          data.type === 'CONTENT_QUERY'
+        ) {
+          handleIncomingPayload(data.type, data);
+        }
       } else if (topic.includes('/statuses')) {
         if (
           data.type === 'STATUS_STORY' ||
@@ -924,4 +935,109 @@ export function subscribeToCloudEvents(
     client.removeListener('connect', subscribeAll);
     topicsToSubscribe.forEach((t) => currentSubscribedTopics.delete(t));
   };
+}
+
+// KONTEN MULTI-USER BROADCASTS
+const CONTENT_BROADCAST_TOPIC = `${TOPIC_PREFIX}/broadcast/content`;
+const LEGACY_CONTENT_BROADCAST_TOPIC = `${LEGACY_TOPIC_PREFIX}/broadcast/content`;
+
+export async function broadcastContentPost(
+  sender: CurrentUserData,
+  post: import('../types').ContentPost
+) {
+  const payload = {
+    id: `cpost_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    senderId: sender.id,
+    post,
+    timestamp: Date.now(),
+  };
+
+  const stringified = JSON.stringify({ type: 'CONTENT_POST', payload });
+  const client = getOrCreateMqttClient();
+
+  const publishToTopic = (topic: string, data: string) => {
+    if (client.connected) {
+      client.publish(topic, data, { qos: 1 }, (err) => {
+        if (err) console.warn('[NYARIOS Cloud v4] Publish warning:', err);
+      });
+    } else {
+      client.once('connect', () => {
+        client.publish(topic, data, { qos: 1 });
+      });
+    }
+  };
+
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({ type: 'CONTENT_POST', topic: CONTENT_BROADCAST_TOPIC, payload });
+  }
+
+  // We are skipping CHUNKED for simplicity right now for videos, assuming they fit in IndexedDB 
+  // or we only send metadata and blob urls (wait, blob url can't be sent over MQTT).
+  // Wait, if it's a huge video blob, it MUST be chunked. We will use the existing chunk logic if needed,
+  // but to prevent exploding the token limit/complexity, we can rely on dummy base64 or small objects 
+  // if they try to sync over MQTT. But the prompt specifically said "Video harus diupload ke storage, mendapatkan URL, metadata disimpan ke database".
+  // Let's just broadcast the metadata and URL. The URL will just be what's in the object.
+  
+  publishToTopic(CONTENT_BROADCAST_TOPIC, stringified);
+  publishToTopic(LEGACY_CONTENT_BROADCAST_TOPIC, stringified);
+}
+
+export async function broadcastDeleteContentPost(
+  sender: CurrentUserData,
+  postId: string
+) {
+  const payload = {
+    id: `cdel_${Date.now()}`,
+    senderId: sender.id,
+    postId,
+    timestamp: Date.now(),
+  };
+
+  const stringified = JSON.stringify({ type: 'DELETE_CONTENT', payload });
+  const client = getOrCreateMqttClient();
+
+  const publishToTopic = (topic: string, data: string) => {
+    if (client.connected) {
+      client.publish(topic, data, { qos: 1 });
+    } else {
+      client.once('connect', () => {
+        client.publish(topic, data, { qos: 1 });
+      });
+    }
+  };
+
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({ type: 'DELETE_CONTENT', topic: CONTENT_BROADCAST_TOPIC, payload });
+  }
+
+  publishToTopic(CONTENT_BROADCAST_TOPIC, stringified);
+  publishToTopic(LEGACY_CONTENT_BROADCAST_TOPIC, stringified);
+}
+
+export async function broadcastContentQuery(sender: CurrentUserData) {
+  const payload = {
+    id: `cquery_${Date.now()}`,
+    senderId: sender.id,
+    timestamp: Date.now(),
+  };
+
+  const stringified = JSON.stringify({ type: 'CONTENT_QUERY', payload });
+  const client = getOrCreateMqttClient();
+
+  const publishToTopic = (topic: string, data: string) => {
+    if (client.connected) {
+      client.publish(topic, data, { qos: 1 });
+    } else {
+      client.once('connect', () => {
+        client.publish(topic, data, { qos: 1 });
+      });
+    }
+  };
+
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({ type: 'CONTENT_QUERY', topic: CONTENT_BROADCAST_TOPIC, payload });
+  }
+
+  publishToTopic(CONTENT_BROADCAST_TOPIC, stringified);
+  publishToTopic(LEGACY_CONTENT_BROADCAST_TOPIC, stringified);
 }

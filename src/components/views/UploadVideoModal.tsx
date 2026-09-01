@@ -3,6 +3,7 @@ import { X, UploadCloud, Film } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ContentPost } from '../../types';
 import { saveContentPost } from '../../utils/contentDb';
+import { broadcastContentPost } from '../../utils/cloudSync';
 
 interface Props {
   isOpen: boolean;
@@ -71,6 +72,9 @@ export const UploadVideoModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }
       };
 
       await saveContentPost(newPost);
+      if (privacy === 'public' || privacy === 'contacts') {
+        broadcastContentPost(currentUser, newPost);
+      }
       onSuccess(newPost);
       handleClose();
     } catch (err) {

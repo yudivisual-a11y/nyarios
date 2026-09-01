@@ -3,7 +3,9 @@ import { PlaySquare, Plus, Search, Heart, MessageCircle, Share2, MoreVertical, X
 import { useApp } from '../../context/AppContext';
 import { ContentPost } from '../../types';
 import { getAllContentPosts, updateContentPost, deleteContentPost } from '../../utils/contentDb';
+import { broadcastDeleteContentPost } from '../../utils/cloudSync';
 import { UploadVideoModal } from './UploadVideoModal';
+import { UserProfileModal } from './UserProfileModal';
 
 export const ContentView: React.FC = () => {
   const { currentUser } = useApp();
@@ -12,9 +14,12 @@ export const ContentView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'mine' | 'popular' | 'recent'>('all');
   const [activeVideo, setActiveVideo] = useState<ContentPost | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPosts();
+    const iv = setInterval(loadPosts, 5000);
+    return () => clearInterval(iv);
   }, []);
 
   const loadPosts = async () => {
@@ -62,6 +67,7 @@ export const ContentView: React.FC = () => {
   const handleDelete = async (postId: string) => {
     if (!confirm('Hapus video ini?')) return;
     await deleteContentPost(postId);
+    broadcastDeleteContentPost(currentUser, postId);
     setPosts(posts.filter(p => p.id !== postId));
     if (activeVideo?.id === postId) setActiveVideo(null);
   };
@@ -150,7 +156,7 @@ export const ContentView: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <img src={post.userAvatar || `https://ui-avatars.com/api/?name=${post.userName}&background=10B981&color=fff`} className="w-6 h-6 rounded-full border border-white/20" />
+                    <img onClick={(e) => { e.stopPropagation(); setProfileUserId(post.userId); }} src={post.userAvatar || `https://ui-avatars.com/api/?name=${post.userName}&background=10B981&color=fff`} className="w-6 h-6 rounded-full border border-white/20 hover:scale-110 transition cursor-pointer" />
                     <span className="text-white text-xs font-medium truncate">{post.userName}</span>
                   </div>
                   <p className="text-white font-semibold text-sm line-clamp-2 leading-snug">{post.title}</p>
@@ -170,6 +176,7 @@ export const ContentView: React.FC = () => {
         )}
       </div>
 
+      {profileUserId && <UserProfileModal userId={profileUserId} isOpen={true} onClose={() => setProfileUserId(null)} />}
       <UploadVideoModal 
         isOpen={isUploadOpen} 
         onClose={() => setIsUploadOpen(false)} 
@@ -198,9 +205,9 @@ export const ContentView: React.FC = () => {
           <div className="w-full md:w-96 bg-white dark:bg-[#111B21] flex flex-col h-[40vh] md:h-full overflow-hidden shrink-0 border-l border-slate-200 dark:border-slate-800">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img src={activeVideo.userAvatar || `https://ui-avatars.com/api/?name=${activeVideo.userName}&background=10B981&color=fff`} className="w-10 h-10 rounded-full" />
+                <img src={activeVideo.userAvatar || `https://ui-avatars.com/api/?name=${activeVideo.userName}&background=10B981&color=fff`} className="w-10 h-10 rounded-full cursor-pointer hover:opacity-80 transition" onClick={() => { setActiveVideo(null); setProfileUserId(activeVideo.userId); }} />
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">{activeVideo.userName}</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 cursor-pointer hover:underline" onClick={() => { setActiveVideo(null); setProfileUserId(activeVideo.userId); }}>{activeVideo.userName}</h3>
                   <p className="text-xs text-slate-500">{new Date(activeVideo.rawTimestamp).toLocaleDateString()}</p>
                 </div>
               </div>

@@ -1,3 +1,5 @@
+import { saveContentPost, deleteContentPost, getAllContentPosts } from '../utils/contentDb';
+import { broadcastContentPost } from '../utils/cloudSync';
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   Chat,
@@ -830,6 +832,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             });
         }
       },
+      onContentPost: (incomingPost) => {
+        const fullPost = incomingPost as import('../types').ContentPost;
+        saveContentPost(fullPost);
+      },
+      onDeleteContent: (deletedContentId) => {
+        deleteContentPost(deletedContentId);
+      },
+      onContentQuery: (requesterId) => {
+        if (requesterId !== currentUser?.id) {
+          // Re-broadcast our public content
+          getAllContentPosts().then((posts: import('../types').ContentPost[]) => {
+             posts.filter((p: import('../types').ContentPost) => p.userId === currentUser.id && p.privacy === 'public').forEach((p: import('../types').ContentPost) => {
+                 broadcastContentPost(currentUser, p);
+             });
+          });
+        }
+      },
     });
 
     // Query online peers for all active statuses and presence after connection initializes
@@ -837,6 +856,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       broadcastStatusQuery(currentUser);
       broadcastUserPresence(currentUser);
       broadcastPresenceQuery(currentUser);
+      import('../utils/cloudSync').then(m => m.broadcastContentQuery(currentUser));
     }, 300);
 
     return () => {
