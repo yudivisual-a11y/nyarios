@@ -21,26 +21,55 @@ export const StatusView: React.FC = () => {
       .sort((a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0));
   }, [statuses, currentUser.id, currentUser.name]);
 
-  // 2. Contact Statuses (Hanya milik kontak / orang lain, diurutkan terbaru dahulu di grid)
+  // 2. Contact Statuses (Hanya milik kontak / orang lain)
   const contactStatuses = useMemo(() => {
-    return statuses
-      .filter((s) => s.userId !== currentUser.id && s.userName !== currentUser.name)
-      .sort((a, b) => (b.rawTimestamp || 0) - (a.rawTimestamp || 0));
+    return statuses.filter((s) => s.userId !== currentUser.id && s.userName !== currentUser.name);
   }, [statuses, currentUser.id, currentUser.name]);
+
+  // Kelompokkan status kontak per orang (1 Orang = 1 Kotak Kartu di Luar)
+  const groupedContactStatuses = useMemo(() => {
+    const map = new Map<string, StatusStory[]>();
+    contactStatuses.forEach((st) => {
+      const key = (st.userId && st.userId.trim()) || (st.userName && st.userName.trim()) || 'unknown';
+      const arr = map.get(key) || [];
+      arr.push(st);
+      map.set(key, arr);
+    });
+
+    return Array.from(map.values()).map((stories) => {
+      // Urutkan kronologis (Cerita 1 -> Cerita 2 -> Cerita 3) untuk diputar berurutan di dalam viewer
+      const chronological = [...stories].sort(
+        (a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0)
+      );
+      // Cerita paling baru dipakai untuk gambar cover thumbnail di luar
+      const latest = chronological[chronological.length - 1];
+      const hasUnviewed = chronological.some((s) => !s.viewers?.includes(currentUser.name));
+
+      return {
+        key: latest.userId || latest.userName,
+        userName: latest.userName,
+        userAvatar: latest.userAvatar,
+        latest,
+        allStories: chronological,
+        unviewedCount: chronological.filter((s) => !s.viewers?.includes(currentUser.name)).length,
+        hasUnviewed,
+      };
+    });
+  }, [contactStatuses, currentUser.name]);
 
   const handleOpenMyStatus = () => {
     if (myStatuses.length > 0) {
       setViewerStoryList(myStatuses);
-      setSelectedStoryIndex(0);
+      setSelectedStoryIndex(0); // Mulai dari cerita pertama (Cerita 1)
       setIsViewerOpen(true);
     } else {
       setIsCreateModalOpen(true);
     }
   };
 
-  const handleOpenContactStatus = (clickedIndex: number) => {
-    setViewerStoryList(contactStatuses);
-    setSelectedStoryIndex(clickedIndex);
+  const handleOpenContactGroup = (groupStories: StatusStory[]) => {
+    setViewerStoryList(groupStories);
+    setSelectedStoryIndex(0); // Mulai dari cerita pertama (Cerita 1), lalu lanjut ke 2, 3 di dalam viewer
     setIsViewerOpen(true);
   };
 
@@ -184,21 +213,22 @@ export const StatusView: React.FC = () => {
               )}
             </div>
 
-            {/* 2. KARTU-KARTU STATUS KONTAK LAIN (SETIAP STATUS 1, 2, 3 BERJAJAR LANGSUNG) */}
-            {contactStatuses.map((st, idx) => {
-              const isViewed = st.viewers && st.viewers.includes(currentUser.name);
+            {/* 2. KARTU-KARTU STATUS KONTAK LAIN (1 ORANG = 1 KARTU DI LUAR, MULTI-CERITA DI DALAM) */}
+            {groupedContactStatuses.map((group) => {
+              const st = group.latest;
+              const hasUnviewed = group.hasUnviewed;
 
               return (
                 <div
-                  key={st.id}
-                  onClick={() => handleOpenContactStatus(idx)}
+                  key={group.key}
+                  onClick={() => handleOpenContactGroup(group.allStories)}
                   className={`relative aspect-[9/14] rounded-3xl overflow-hidden cursor-pointer group neu-raised border transition-all shadow-md hover:scale-[1.02] active:scale-95 ${
-                    !isViewed
+                    hasUnviewed
                       ? 'border-[var(--color-accent-primary,#ff4b4b)] ring-2 ring-[var(--color-accent-primary,#ff4b4b)]/30'
                       : 'border-[var(--border-color,rgba(255,255,255,0.06))] opacity-85'
                   }`}
                 >
-                  {/* Background Content */}
+                  {/* Background Content (Latest Story Cover) */}
                   {st.type === 'image' && (
                     <img
                       src={st.content}
@@ -237,11 +267,19 @@ export const StatusView: React.FC = () => {
                   <div className="absolute top-3 left-3 z-10">
                     <div className="relative">
                       <Avatar name={st.userName} src={st.userAvatar} size="sm" />
-                      {!isViewed && (
+                      {hasUnviewed && (
                         <span className="absolute -inset-0.5 rounded-full border-2 border-[var(--color-accent-primary,#ff4b4b)]" />
                       )}
                     </div>
                   </div>
+
+                  {/* Top Right Multi-Story Badge if friend has > 1 stories */}
+                  {group.allStories.length > 1 && (
+                    <div className="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-[10px] font-extrabold text-white shadow-sm flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#ff4b4b] animate-pulse" />
+                      <span>{group.allStories.length} cerita</span>
+                    </div>
+                  )}
 
                   {/* Bottom Gradient Overlay with Name & Time */}
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-10 flex flex-col justify-end">
@@ -249,7 +287,7 @@ export const StatusView: React.FC = () => {
                       {st.userName}
                     </span>
                     <span className="text-[10px] text-slate-300 drop-shadow-sm truncate">
-                      {st.timestamp} {st.caption ? `• ${st.caption}` : ''}
+                      {st.timestamp} {group.allStories.length > 1 ? `• ${group.allStories.length} cerita` : (st.caption ? `• ${st.caption}` : '')}
                     </span>
                   </div>
                 </div>
@@ -258,7 +296,7 @@ export const StatusView: React.FC = () => {
           </div>
 
           {/* Empty state notice if no contact statuses yet */}
-          {contactStatuses.length === 0 && (
+          {groupedContactStatuses.length === 0 && (
             <div className="p-6 rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.05))] flex items-center gap-3.5 mt-2 shadow-sm">
               <div className="w-10 h-10 rounded-2xl neu-raised text-[var(--color-accent-primary,#ff4b4b)] flex items-center justify-center shrink-0">
                 <CircleDot className="w-5 h-5" />
