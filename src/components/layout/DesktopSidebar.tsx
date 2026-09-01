@@ -1,4 +1,4 @@
-import {
+import { PlaySquare,
   MessageSquare,
   Users2,
   CircleDot,
@@ -45,6 +45,11 @@ export const DesktopSidebar: React.FC = () => {
       id: 'kontak',
       label: 'Kontak',
       icon: <BookUser className="w-5 h-5" />,
+    },
+        {
+      id: 'konten',
+      label: 'Konten',
+      icon: <PlaySquare className="w-5 h-5" />,
     },
     {
       id: 'komunitas',

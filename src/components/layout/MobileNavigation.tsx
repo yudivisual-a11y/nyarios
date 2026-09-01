@@ -1,5 +1,5 @@
 import React from 'react';
-import {
+import { PlaySquare,
   MessageSquare,
   BookUser,
   Camera,
@@ -28,6 +28,11 @@ export const MobileNavigation: React.FC = () => {
       id: 'kontak',
       label: 'Kontak',
       icon: <BookUser className="w-5 h-5" />,
+    },
+        {
+      id: 'konten',
+      label: 'Konten',
+      icon: <PlaySquare className="w-5 h-5" />,
     },
     {
       id: 'status',

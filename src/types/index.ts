@@ -179,6 +179,36 @@ export interface StatusStory {
   viewers: string[];
 }
 
+
+export interface ContentPost {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  userUsername?: string;
+  videoUrl: string;
+  videoBlob?: Blob; // The URL/base64/blob URL
+  thumbnailUrl?: string;
+  title: string;
+  description: string;
+  privacy: 'public' | 'contacts' | 'private';
+  likes: string[]; // array of userIds
+  comments: ContentComment[];
+  views: number;
+  duration?: string;
+  timestamp: string;
+  rawTimestamp: number;
+}
+
+export interface ContentComment {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  text: string;
+  timestamp: string;
+}
+
 export interface CallRecord {
   id: string;
   contactName: string;
@@ -225,5 +255,5 @@ export interface ContactPerson {
   chatId?: string;
 }
 
-export type MainNavTab = 'pesan' | 'kontak' | 'status' | 'komunitas' | 'panggilan' | 'saya';
+export type MainNavTab = 'pesan' | 'kontak' | 'konten' | 'status' | 'komunitas' | 'panggilan' | 'saya';
 export type DesktopSubTab = 'tersimpan' | 'aktivitas' | 'jadwal' | 'file_center' | 'pengaturan';

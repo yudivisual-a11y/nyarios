@@ -5,6 +5,7 @@ import { MobileNavigation } from './components/layout/MobileNavigation';
 import { ChatList } from './components/chat/ChatList';
 import { ChatCanvas } from './components/chat/ChatCanvas';
 import { CommunityView } from './components/views/CommunityView';
+import { ContentView } from './components/views/ContentView';
 import { StatusView } from './components/views/StatusView';
 import { ContactsView } from './components/views/ContactsView';
 import { CallsView } from './components/views/CallsView';
@@ -146,6 +147,9 @@ export const App: React.FC = () => {
 
             {/* KONTAK VIEW */}
             {activeNavTab === 'kontak' && <ContactsView />}
+
+                        {/* KONTEN VIEW */}
+            {activeNavTab === 'konten' && <ContentView />}
 
             {/* KOMUNITAS VIEW */}
             {activeNavTab === 'komunitas' && <CommunityView />}
