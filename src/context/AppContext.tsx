@@ -187,21 +187,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Current user
   const [currentUser, setCurrentUser] = useState<CurrentUserData>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('nyarios_user');
-      if (saved) {
-        try {
-          return JSON.parse(saved) as CurrentUserData;
-        } catch {
-          // fallback
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      if (auth) {
+        const saved = localStorage.getItem('nyarios_user');
+        if (saved) {
+          try {
+            return JSON.parse(saved) as CurrentUserData;
+          } catch {}
         }
       }
     }
     return {
-      id: 'user_me',
-      name: 'Saya',
-      bio: 'Menggunakan NYARIOS',
+      id: '',
+      name: '',
+      username: '',
+      bio: '',
       avatar: '',
-      phone: '+62 812-3456-7890',
+      phone: '',
     };
   });
 
@@ -210,16 +212,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activeDesktopSubTab, setActiveDesktopSubTab] = useState<DesktopSubTab | null>(null);
   const [isGroupDetailOpen, setIsGroupDetailOpen] = useState(false);
 
-  // Chats & Messages state - PURE ZERO DUMMY DATA (Starts Empty)
+  // Chats & Messages state - STRICTLY ISOLATED PER USER
   const [chats, setChats] = useState<Chat[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_chats`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_chats`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return [];
@@ -233,13 +238,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_messages`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_messages`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return {};
@@ -248,29 +256,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Folders state
   const [customFolders, setCustomFolders] = useState<ChatFolder[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_folders`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_folders`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
-    return [];
+    return [
+      { id: 'all', name: 'Semua', icon: 'Inbox', chatIds: [] },
+      { id: 'unread', name: 'Belum Dibaca', icon: 'Clock', chatIds: [] },
+      { id: 'groups', name: 'Grup', icon: 'Users', chatIds: [] },
+      { id: 'work', name: 'Pribadi', icon: 'Briefcase', chatIds: [] },
+    ];
   });
   const [activeFolderId, setActiveFolderId] = useState<string>('all');
 
   // Tasks & Schedules
   const [tasks, setTasks] = useState<TaskItem[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_tasks`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_tasks`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return [];
@@ -278,13 +297,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [schedules, setSchedules] = useState<ScheduleEvent[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_schedules`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_schedules`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return [];
@@ -293,13 +315,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Communities
   const [communities, setCommunities] = useState<Community[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_communities`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_communities`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return [];
@@ -308,13 +333,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Status Stories
   const [statuses, setStatuses] = useState<StatusStory[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_statuses`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_statuses`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return [];
@@ -323,13 +351,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Calls
   const [callRecords, setCallRecords] = useState<CallRecord[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_calls`);
-      if (saved) {
+      const auth = localStorage.getItem('nyarios_is_logged_in') === 'true';
+      const savedUser = localStorage.getItem('nyarios_user');
+      if (auth && savedUser) {
         try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
+          const userObj = JSON.parse(savedUser);
+          if (userObj?.id) {
+            const saved = localStorage.getItem(`nyarios_data_${userObj.id}_calls`);
+            if (saved) return JSON.parse(saved);
+          }
+        } catch {}
       }
     }
     return [];
@@ -353,7 +384,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     applyThemeVariables(themeObj);
   }, [accentTheme]);
 
-  // Persist state changes safely (Scoped per-user to prevent data loss on logout)
+  // Persist state changes safely (Strictly isolated per-user ID)
   useEffect(() => {
     if (!isLoggedIn || !currentUser?.id) return;
     try {
@@ -367,7 +398,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_chats`, JSON.stringify(chats));
-      localStorage.setItem(`${STORAGE_KEY}_chats`, JSON.stringify(chats));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -377,7 +407,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_messages`, JSON.stringify(messages));
-      localStorage.setItem(`${STORAGE_KEY}_messages`, JSON.stringify(messages));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -387,7 +416,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_folders`, JSON.stringify(customFolders));
-      localStorage.setItem(`${STORAGE_KEY}_folders`, JSON.stringify(customFolders));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -397,7 +425,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_tasks`, JSON.stringify(tasks));
-      localStorage.setItem(`${STORAGE_KEY}_tasks`, JSON.stringify(tasks));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -407,7 +434,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_schedules`, JSON.stringify(schedules));
-      localStorage.setItem(`${STORAGE_KEY}_schedules`, JSON.stringify(schedules));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -417,7 +443,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_communities`, JSON.stringify(communities));
-      localStorage.setItem(`${STORAGE_KEY}_communities`, JSON.stringify(communities));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -427,7 +452,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_statuses`, JSON.stringify(statuses));
-      localStorage.setItem(`${STORAGE_KEY}_statuses`, JSON.stringify(statuses));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -437,7 +461,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!isLoggedIn || !currentUser?.id) return;
     try {
       localStorage.setItem(`nyarios_data_${currentUser.id}_calls`, JSON.stringify(callRecords));
-      localStorage.setItem(`${STORAGE_KEY}_calls`, JSON.stringify(callRecords));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -579,83 +602,83 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const restoreUserData = (userId: string) => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !userId) return;
     try {
-      // 1. Restore Chats
-      const savedChats =
-        localStorage.getItem(`nyarios_data_${userId}_chats`) ||
-        localStorage.getItem(`${STORAGE_KEY}_chats`);
+      // 1. Restore Chats (Strictly per-user)
+      const savedChats = localStorage.getItem(`nyarios_data_${userId}_chats`);
       if (savedChats) {
-        const parsed = JSON.parse(savedChats);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setChats(parsed);
+        try {
+          const parsed = JSON.parse(savedChats);
+          setChats(Array.isArray(parsed) ? parsed : []);
+        } catch {
+          setChats([]);
         }
+      } else {
+        setChats([]);
       }
 
-      // 2. Restore Messages
-      const savedMsgs =
-        localStorage.getItem(`nyarios_data_${userId}_messages`) ||
-        localStorage.getItem(`${STORAGE_KEY}_messages`);
+      // 2. Restore Messages (Strictly per-user)
+      const savedMsgs = localStorage.getItem(`nyarios_data_${userId}_messages`);
       if (savedMsgs) {
-        const parsed = JSON.parse(savedMsgs);
-        if (parsed && typeof parsed === 'object') {
-          setMessages(parsed);
+        try {
+          const parsed = JSON.parse(savedMsgs);
+          setMessages(parsed && typeof parsed === 'object' ? parsed : {});
+        } catch {
+          setMessages({});
         }
+      } else {
+        setMessages({});
       }
 
       // 3. Restore Folders
-      const savedFolders =
-        localStorage.getItem(`nyarios_data_${userId}_folders`) ||
-        localStorage.getItem(`${STORAGE_KEY}_folders`);
+      const savedFolders = localStorage.getItem(`nyarios_data_${userId}_folders`);
       if (savedFolders) {
-        const parsed = JSON.parse(savedFolders);
-        if (Array.isArray(parsed)) setCustomFolders(parsed);
+        try {
+          const parsed = JSON.parse(savedFolders);
+          setCustomFolders(Array.isArray(parsed) ? parsed : [
+            { id: 'all', name: 'Semua', icon: 'Inbox', chatIds: [] },
+            { id: 'unread', name: 'Belum Dibaca', icon: 'Clock', chatIds: [] },
+            { id: 'groups', name: 'Grup', icon: 'Users', chatIds: [] },
+            { id: 'work', name: 'Pribadi', icon: 'Briefcase', chatIds: [] },
+          ]);
+        } catch {
+          setCustomFolders([
+            { id: 'all', name: 'Semua', icon: 'Inbox', chatIds: [] },
+            { id: 'unread', name: 'Belum Dibaca', icon: 'Clock', chatIds: [] },
+            { id: 'groups', name: 'Grup', icon: 'Users', chatIds: [] },
+            { id: 'work', name: 'Pribadi', icon: 'Briefcase', chatIds: [] },
+          ]);
+        }
+      } else {
+        setCustomFolders([
+          { id: 'all', name: 'Semua', icon: 'Inbox', chatIds: [] },
+          { id: 'unread', name: 'Belum Dibaca', icon: 'Clock', chatIds: [] },
+          { id: 'groups', name: 'Grup', icon: 'Users', chatIds: [] },
+          { id: 'work', name: 'Pribadi', icon: 'Briefcase', chatIds: [] },
+        ]);
       }
 
       // 4. Restore Tasks
-      const savedTasks =
-        localStorage.getItem(`nyarios_data_${userId}_tasks`) ||
-        localStorage.getItem(`${STORAGE_KEY}_tasks`);
-      if (savedTasks) {
-        const parsed = JSON.parse(savedTasks);
-        if (Array.isArray(parsed)) setTasks(parsed);
-      }
+      const savedTasks = localStorage.getItem(`nyarios_data_${userId}_tasks`);
+      setTasks(savedTasks ? JSON.parse(savedTasks) : []);
 
       // 5. Restore Schedules
-      const savedSchedules =
-        localStorage.getItem(`nyarios_data_${userId}_schedules`) ||
-        localStorage.getItem(`${STORAGE_KEY}_schedules`);
-      if (savedSchedules) {
-        const parsed = JSON.parse(savedSchedules);
-        if (Array.isArray(parsed)) setSchedules(parsed);
-      }
+      const savedSchedules = localStorage.getItem(`nyarios_data_${userId}_schedules`);
+      setSchedules(savedSchedules ? JSON.parse(savedSchedules) : []);
 
       // 6. Restore Communities
-      const savedComms =
-        localStorage.getItem(`nyarios_data_${userId}_communities`) ||
-        localStorage.getItem(`${STORAGE_KEY}_communities`);
-      if (savedComms) {
-        const parsed = JSON.parse(savedComms);
-        if (Array.isArray(parsed)) setCommunities(parsed);
-      }
+      const savedComms = localStorage.getItem(`nyarios_data_${userId}_communities`);
+      setCommunities(savedComms ? JSON.parse(savedComms) : []);
 
       // 7. Restore Statuses
-      const savedStatuses =
-        localStorage.getItem(`nyarios_data_${userId}_statuses`) ||
-        localStorage.getItem(`${STORAGE_KEY}_statuses`);
-      if (savedStatuses) {
-        const parsed = JSON.parse(savedStatuses);
-        if (Array.isArray(parsed)) setStatuses(parsed);
-      }
+      const savedStatuses = localStorage.getItem(`nyarios_data_${userId}_statuses`);
+      setStatuses(savedStatuses ? JSON.parse(savedStatuses) : []);
 
       // 8. Restore Call Records
-      const savedCalls =
-        localStorage.getItem(`nyarios_data_${userId}_calls`) ||
-        localStorage.getItem(`${STORAGE_KEY}_calls`);
-      if (savedCalls) {
-        const parsed = JSON.parse(savedCalls);
-        if (Array.isArray(parsed)) setCallRecords(parsed);
-      }
+      const savedCalls = localStorage.getItem(`nyarios_data_${userId}_calls`);
+      setCallRecords(savedCalls ? JSON.parse(savedCalls) : []);
+
+      setActiveChatId(null);
     } catch (err) {
       console.warn('Restore user data notice', err);
     }
@@ -727,6 +750,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoggedIn(false);
     localStorage.setItem('nyarios_is_logged_in', 'false');
     localStorage.removeItem('nyarios_user');
+
+    // Clean up legacy global shared state
+    try {
+      localStorage.removeItem('nyarios_chat_state_v1_chats');
+      localStorage.removeItem('nyarios_chat_state_v1_messages');
+      localStorage.removeItem('nyarios_chat_state_v1_folders');
+      localStorage.removeItem('nyarios_chat_state_v1_tasks');
+      localStorage.removeItem('nyarios_chat_state_v1_schedules');
+      localStorage.removeItem('nyarios_chat_state_v1_communities');
+      localStorage.removeItem('nyarios_chat_state_v1_statuses');
+      localStorage.removeItem('nyarios_chat_state_v1_calls');
+    } catch {}
+
     setCurrentUser({
       id: '',
       name: '',
@@ -737,6 +773,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
     setChats([]);
     setMessages({});
+    setTasks([]);
+    setSchedules([]);
+    setCommunities([]);
+    setStatuses([]);
+    setCallRecords([]);
     setActiveChatId(null);
   };
 
