@@ -52,8 +52,10 @@ export interface CloudStatusPayload {
 const CLOUD_STORAGE_USERS_KEY = 'nyarios_cloud_directory_v2';
 const CLOUD_STORAGE_STATUSES_KEY = 'nyarios_cloud_active_statuses_v4';
 const PRIMARY_MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
-const TOPIC_PREFIX = 'nyarios_2026';
+const TOPIC_PREFIX = 'nyarios_v4';
+const LEGACY_TOPIC_PREFIX = 'nyarios_2026';
 const STATUS_BROADCAST_TOPIC = `${TOPIC_PREFIX}/broadcast/statuses`;
+const LEGACY_STATUS_BROADCAST_TOPIC = `${LEGACY_TOPIC_PREFIX}/broadcast/statuses`;
 const CHUNK_SIZE = 48 * 1024; // 48KB per packet safe for 64KB WebSocket broker limits
 
 // Global shared MQTT client singleton
@@ -534,11 +536,19 @@ export async function sendCloudRealtimeMessage(
 
   const stringified = JSON.stringify({ type: 'INCOMING_MESSAGE', payload });
 
-  // Compute unique target message topics
+  // Compute unique target message topics (both current and legacy prefixes)
   const targetTopics = new Set<string>();
   uniqueIdentities.forEach((id) => {
-    const topic = identityToTopic(id);
-    targetTopics.add(`${topic}/messages`);
+    const clean = normalizeUsername(id);
+    if (clean) {
+      targetTopics.add(`${TOPIC_PREFIX}/u/${clean}/messages`);
+      targetTopics.add(`${LEGACY_TOPIC_PREFIX}/u/${clean}/messages`);
+    }
+    const digits = id.replace(/\D/g, '');
+    if (digits) {
+      targetTopics.add(`${TOPIC_PREFIX}/ph/${digits}/messages`);
+      targetTopics.add(`${LEGACY_TOPIC_PREFIX}/ph/${digits}/messages`);
+    }
   });
 
   // 1. Broadcast locally (instant 0ms delivery if on same device/browser tabs)
@@ -829,10 +839,28 @@ export function subscribeToCloudEvents(
   // 2. Listen on Cloud MQTT WebSocket Broker with Wildcard QoS 1
   const client = getOrCreateMqttClient(cleanMyUser);
 
-  const topicsToSubscribe: string[] = [dirTopic, STATUS_BROADCAST_TOPIC];
-  myTopics.forEach((t) => {
-    topicsToSubscribe.push(`${t}/#`);
-    topicsToSubscribe.push(`${t}/messages`);
+  const topicsToSubscribe: string[] = [
+    `${TOPIC_PREFIX}/directory`,
+    `${LEGACY_TOPIC_PREFIX}/directory`,
+    STATUS_BROADCAST_TOPIC,
+    LEGACY_STATUS_BROADCAST_TOPIC,
+  ];
+
+  uniqueIds.forEach((id) => {
+    const clean = normalizeUsername(id);
+    if (clean) {
+      topicsToSubscribe.push(`${TOPIC_PREFIX}/u/${clean}/#`);
+      topicsToSubscribe.push(`${TOPIC_PREFIX}/u/${clean}/messages`);
+      topicsToSubscribe.push(`${LEGACY_TOPIC_PREFIX}/u/${clean}/#`);
+      topicsToSubscribe.push(`${LEGACY_TOPIC_PREFIX}/u/${clean}/messages`);
+    }
+    const digits = id.replace(/\D/g, '');
+    if (digits) {
+      topicsToSubscribe.push(`${TOPIC_PREFIX}/ph/${digits}/#`);
+      topicsToSubscribe.push(`${TOPIC_PREFIX}/ph/${digits}/messages`);
+      topicsToSubscribe.push(`${LEGACY_TOPIC_PREFIX}/ph/${digits}/#`);
+      topicsToSubscribe.push(`${LEGACY_TOPIC_PREFIX}/ph/${digits}/messages`);
+    }
   });
 
   topicsToSubscribe.forEach((t) => currentSubscribedTopics.add(t));
@@ -857,12 +885,13 @@ export function subscribeToCloudEvents(
       if (!text) return;
       const data = JSON.parse(text);
 
-      const isMyTopic = myTopics.some(
-        (mt) =>
-          topic === `${mt}/messages` ||
-          topic.startsWith(mt) ||
-          uniqueIds.some((uid) => topic.includes(`/u/${normalizeUsername(uid)}`))
-      );
+      const isMyTopic =
+        topic.includes('/messages') ||
+        topic.includes('/calls') ||
+        uniqueIds.some((uid) => {
+          const clean = normalizeUsername(uid);
+          return clean && topic.includes(`/u/${clean}`);
+        });
 
       if (isMyTopic) {
         if (data.type === 'INCOMING_MESSAGE' || data.type === 'CHUNKED_MESSAGE') {
@@ -872,11 +901,11 @@ export function subscribeToCloudEvents(
         } else if (data.type === 'CALL_RESPONSE') {
           handleIncomingPayload('CALL_RESPONSE', data);
         }
-      } else if (topic === dirTopic || topic.endsWith('/directory')) {
+      } else if (topic.endsWith('/directory')) {
         if (data.type === 'USER_PRESENCE' || data.type === 'PRESENCE_QUERY') {
           handleIncomingPayload(data.type, data);
         }
-      } else if (topic === STATUS_BROADCAST_TOPIC || topic.includes('/statuses')) {
+      } else if (topic.includes('/statuses')) {
         if (
           data.type === 'STATUS_STORY' ||
           data.type === 'CHUNKED_STATUS' ||
