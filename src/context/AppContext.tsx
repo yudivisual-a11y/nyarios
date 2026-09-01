@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   Chat,
   Message,
@@ -233,6 +233,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const activeChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
 
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
     if (typeof window !== 'undefined') {
@@ -507,7 +511,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               c.id === existing.id
                 ? {
                     ...c,
-                    unreadCount: activeChatId === existing.id ? 0 : (c.unreadCount || 0) + 1,
+                    unreadCount: activeChatIdRef.current === existing.id ? 0 : (c.unreadCount || 0) + 1,
                     lastMessage: {
                       text: payload.message.content || 'Pesan baru',
                       timestamp: timeStr,
@@ -527,7 +531,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               phone: payload.senderPhone,
               avatar: payload.senderAvatar,
               bio: 'Teman di NYARIOS',
-              unreadCount: activeChatId === chatId ? 0 : 1,
+              unreadCount: activeChatIdRef.current === chatId ? 0 : 1,
               isPinned: false,
               isMuted: false,
               isArchived: false,
@@ -561,7 +565,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
 
     return () => unsubscribe();
-  }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn, activeChatId]);
+  }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn]);
 
   // Active call timer
   useEffect(() => {

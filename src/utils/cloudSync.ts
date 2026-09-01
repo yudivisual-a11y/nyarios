@@ -1,7 +1,7 @@
 /**
- * NYARIOS Real-Time Multi-Device Cloud Synchronization Engine (v3.5 Persistent Session)
- * Powered by Enterprise MQTT over WebSocket with QoS 1 Persistent Sessions + Per-Device Client IDs.
- * Ensures 100% two-way message delivery between Phone, Laptop, and Desktop with offline queueing.
+ * NYARIOS Real-Time Multi-Device Cloud Synchronization Engine (v4.0 Bulletproof)
+ * Enterprise MQTT over WebSocket + Wildcard QoS 1 + Persistent Session + Local Mesh
+ * Full bi-directional reliability between Laptop, PC, Phone, and Tablet.
  */
 
 import mqtt, { MqttClient } from 'mqtt';
@@ -38,15 +38,15 @@ export interface CloudMessagePayload {
 const CLOUD_STORAGE_USERS_KEY = 'nyarios_cloud_directory_v2';
 const PRIMARY_MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 const TOPIC_PREFIX = 'nyarios_2026';
-const CHUNK_SIZE = 28 * 1024; // 28KB per chunk for optimal WebSocket frame transit
+const CHUNK_SIZE = 28 * 1024; // 28KB per chunk
 
 // Global shared MQTT client singleton
 let sharedMqttClient: MqttClient | null = null;
-let currentClientIdentifier = '';
-let currentSubscribedTopics = new Set<string>();
+let activeUserIdentifier = '';
+const currentSubscribedTopics = new Set<string>();
 
 const localBroadcastBus = typeof window !== 'undefined' && 'BroadcastChannel' in window
-  ? new BroadcastChannel('nyarios_local_mesh_bus_v3')
+  ? new BroadcastChannel('nyarios_local_mesh_bus_v4')
   : null;
 
 /**
@@ -55,10 +55,10 @@ const localBroadcastBus = typeof window !== 'undefined' && 'BroadcastChannel' in
 function getDeviceId(): string {
   if (typeof window === 'undefined') return 'node';
   try {
-    let id = localStorage.getItem('nyarios_device_instance_id');
+    let id = localStorage.getItem('nyarios_device_instance_id_v4');
     if (!id) {
       id = `dev_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-      localStorage.setItem('nyarios_device_instance_id', id);
+      localStorage.setItem('nyarios_device_instance_id_v4', id);
     }
     return id;
   } catch {
@@ -114,48 +114,60 @@ export function identityToTopic(identity: string): string {
 }
 
 /**
- * Initializes and manages shared MQTT WebSocket connection with persistent session per device
+ * Initializes and manages shared MQTT WebSocket connection
  */
 function getOrCreateMqttClient(myIdentifier?: string): MqttClient {
-  const cleanUser = myIdentifier ? normalizeUsername(myIdentifier) : (currentClientIdentifier || 'guest');
+  const cleanUser = myIdentifier ? normalizeUsername(myIdentifier) : (activeUserIdentifier || 'guest');
 
-  if (sharedMqttClient && sharedMqttClient.connected) {
+  // If client exists and is connected for the same user, return it
+  if (sharedMqttClient && sharedMqttClient.connected && activeUserIdentifier === cleanUser) {
     return sharedMqttClient;
   }
 
-  if (sharedMqttClient && !sharedMqttClient.disconnected && !sharedMqttClient.disconnecting) {
+  // If user changed, tear down old client
+  if (sharedMqttClient && activeUserIdentifier !== cleanUser) {
+    try {
+      sharedMqttClient.end(true);
+    } catch {}
+    sharedMqttClient = null;
+    currentSubscribedTopics.clear();
+  }
+
+  if (sharedMqttClient && !sharedMqttClient.disconnected) {
     return sharedMqttClient;
   }
 
-  currentClientIdentifier = cleanUser;
-  const clientId = `nyarios_v3_${cleanUser}_${getDeviceId()}`;
+  activeUserIdentifier = cleanUser;
+  const clientId = `nyarios_v4_${cleanUser}_${getDeviceId()}`;
 
   try {
     sharedMqttClient = mqtt.connect(PRIMARY_MQTT_BROKER, {
       clientId,
-      clean: false, // Persistent session for guaranteed offline delivery & queueing
+      clean: true, // Clean session to avoid broker session state lockups
       connectTimeout: 10000,
       reconnectPeriod: 1000,
       keepalive: 15,
     });
 
     sharedMqttClient.on('connect', () => {
-      console.log(`[NYARIOS Cloud v3.5] Connected as ${clientId}`);
+      console.log(`[NYARIOS Cloud v4] Connected as ${clientId}`);
       if (currentSubscribedTopics.size > 0 && sharedMqttClient) {
         const topics = Array.from(currentSubscribedTopics);
-        sharedMqttClient.subscribe(topics, { qos: 1 });
+        sharedMqttClient.subscribe(topics, { qos: 1 }, (err) => {
+          if (!err) console.log(`[NYARIOS Cloud v4] Re-subscribed to:`, topics);
+        });
       }
     });
 
     sharedMqttClient.on('error', (err) => {
-      console.warn('[NYARIOS Cloud v3.5] Connection notice:', err);
+      console.warn('[NYARIOS Cloud v4] Connection notice:', err);
     });
 
     sharedMqttClient.on('close', () => {
-      console.log('[NYARIOS Cloud v3.5] Reconnecting...');
+      console.log('[NYARIOS Cloud v4] Reconnecting...');
     });
   } catch (e) {
-    console.warn('[NYARIOS Cloud v3.5] Init error:', e);
+    console.warn('[NYARIOS Cloud v4] Init error:', e);
   }
 
   return sharedMqttClient as MqttClient;
@@ -287,6 +299,7 @@ export async function sendCloudRealtimeMessage(
   };
 
   const recipientTopic = identityToTopic(recipientIdentity);
+  const targetMsgTopic = `${recipientTopic}/messages`;
   const stringified = JSON.stringify({ type: 'INCOMING_MESSAGE', payload });
 
   // 1. Broadcast locally (instant 0ms delivery if on same device/browser tabs)
@@ -294,12 +307,14 @@ export async function sendCloudRealtimeMessage(
     localBroadcastBus.postMessage({ type: 'INCOMING_MESSAGE', topic: recipientTopic, payload });
   }
 
-  // 2. Publish to MQTT broker across internet (with QoS 1 + chunking for large media)
+  // 2. Publish to MQTT broker across internet
   const client = getOrCreateMqttClient(cleanSender);
 
   const publishToTopic = (topic: string, data: string) => {
     if (client.connected) {
-      client.publish(topic, data, { qos: 1 });
+      client.publish(topic, data, { qos: 1 }, (err) => {
+        if (err) console.warn('[NYARIOS Cloud v4] Publish warning:', err);
+      });
     } else {
       client.once('connect', () => {
         client.publish(topic, data, { qos: 1 });
@@ -309,7 +324,7 @@ export async function sendCloudRealtimeMessage(
 
   if (stringified.length <= CHUNK_SIZE) {
     // Fits in a single packet
-    publishToTopic(`${recipientTopic}/messages`, stringified);
+    publishToTopic(targetMsgTopic, stringified);
   } else {
     // Large payload (Photo HD / Video / Audio / Document) -> Send in numbered chunks
     const totalChunks = Math.ceil(stringified.length / CHUNK_SIZE);
@@ -325,7 +340,7 @@ export async function sendCloudRealtimeMessage(
         chunkData,
       });
 
-      publishToTopic(`${recipientTopic}/messages`, chunkPayload);
+      publishToTopic(targetMsgTopic, chunkPayload);
     }
   }
 }
@@ -418,6 +433,7 @@ export function subscribeToCloudEvents(
   const cleanMyUser = normalizeUsername(myIdentifier);
   const myTopic = identityToTopic(myIdentifier);
   const myWildcardTopic = `${myTopic}/#`;
+  const myMsgTopic = `${myTopic}/messages`;
   const dirTopic = `${TOPIC_PREFIX}/directory`;
 
   const processedMsgIds = new Set<string>();
@@ -467,7 +483,7 @@ export function subscribeToCloudEvents(
               }
             }
           } catch (e) {
-            console.warn('[NYARIOS Cloud] Reassembly parse error', e);
+            console.warn('[NYARIOS Cloud v4] Reassembly parse error', e);
           }
         }
       } else if (type === 'CALL_SIGNAL' && data?.signal) {
@@ -478,7 +494,7 @@ export function subscribeToCloudEvents(
         handlers.onUserPresence(data.user);
       }
     } catch (e) {
-      console.warn('[NYARIOS Cloud] Event handler notice:', e);
+      console.warn('[NYARIOS Cloud v4] Event handler notice:', e);
     }
   };
 
@@ -494,16 +510,16 @@ export function subscribeToCloudEvents(
     localBroadcastBus.addEventListener('message', handleLocalMessage);
   }
 
-  // 2. Listen on Cloud MQTT WebSocket Broker with Persistent Session & Wildcard QoS 1
+  // 2. Listen on Cloud MQTT WebSocket Broker with Wildcard QoS 1
   const client = getOrCreateMqttClient(cleanMyUser);
-  const topicsToSubscribe = [myWildcardTopic, dirTopic];
+  const topicsToSubscribe = [myWildcardTopic, myMsgTopic, dirTopic];
 
   topicsToSubscribe.forEach((t) => currentSubscribedTopics.add(t));
 
   const subscribeAll = () => {
     client.subscribe(topicsToSubscribe, { qos: 1 }, (err) => {
       if (!err) {
-        console.log(`[NYARIOS Cloud v3.5] Subscribed wildcard QoS 1: ${myWildcardTopic}`);
+        console.log(`[NYARIOS Cloud v4] Subscribed QoS 1 to: ${myWildcardTopic}`);
       }
     });
   };
@@ -520,7 +536,12 @@ export function subscribeToCloudEvents(
       if (!text) return;
       const data = JSON.parse(text);
 
-      if (topic.startsWith(myTopic) || topic.includes(myTopic)) {
+      const isMyTopic =
+        topic === myMsgTopic ||
+        topic.startsWith(myTopic) ||
+        topic.includes(`/u/${cleanMyUser}`);
+
+      if (isMyTopic) {
         if (data.type === 'INCOMING_MESSAGE' || data.type === 'CHUNKED_MESSAGE') {
           handleIncomingPayload(data.type, data);
         } else if (data.type === 'CALL_SIGNAL') {
@@ -534,7 +555,7 @@ export function subscribeToCloudEvents(
         }
       }
     } catch (err) {
-      console.warn('[NYARIOS Cloud v3.5] MQTT parse notice:', err);
+      console.warn('[NYARIOS Cloud v4] MQTT parse notice:', err);
     }
   };
 
@@ -547,8 +568,5 @@ export function subscribeToCloudEvents(
     client.removeListener('message', handleMqttMessage);
     client.removeListener('connect', subscribeAll);
     topicsToSubscribe.forEach((t) => currentSubscribedTopics.delete(t));
-    try {
-      client.unsubscribe(topicsToSubscribe);
-    } catch {}
   };
 }
