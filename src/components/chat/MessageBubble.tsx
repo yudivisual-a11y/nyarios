@@ -21,6 +21,8 @@ import {
   BarChart2,
   Maximize2,
   X,
+  Share2,
+  ExternalLink,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Message } from '../../types';
@@ -167,7 +169,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         isBlobCreated = true;
       }
 
-      // Pure HTML5 download anchor without target="_blank" (prevents Android popup blocks)
+      // Pure HTML5 download anchor
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = defaultName;
@@ -182,13 +184,40 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             URL.revokeObjectURL(downloadUrl);
           }
         } catch {}
-      }, 3000);
+      }, 5000);
     } catch (e) {
       console.warn('Download notice', e);
       try {
         window.open(src, '_blank');
       } catch {}
     }
+  };
+
+  const handleShareMedia = async (src: string, defaultName: string) => {
+    try {
+      if (!src) return;
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        if (src.startsWith('data:')) {
+          const blob = dataURLtoBlob(src);
+          const file = new File([blob], defaultName, { type: blob.type });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: defaultName,
+            });
+            return;
+          }
+        }
+        await navigator.share({
+          title: defaultName,
+          url: src.startsWith('data:') ? undefined : src,
+        });
+        return;
+      }
+    } catch (err) {
+      // Fallback to direct download if share dialog was dismissed
+    }
+    handleDownloadMedia(src, defaultName);
   };
 
   const handleDownloadDoc = () => {
@@ -267,6 +296,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover/img:opacity-100 transition-opacity z-10">
                   <button
                     type="button"
+                    title="Bagikan / Simpan ke Galeri"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShareMedia(
+                        message.content,
+                        message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
+                      );
+                    }}
+                    className="p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95 cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4 text-white" />
+                  </button>
+                  <button
+                    type="button"
                     title="Simpan / Download Foto"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -275,7 +318,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
                       );
                     }}
-                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95"
+                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95 cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-emerald-400" />
                   </button>
@@ -286,7 +329,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       e.stopPropagation();
                       setIsPhotoLightboxOpen(true);
                     }}
-                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95"
+                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95 cursor-pointer"
                   >
                     <Maximize2 className="w-4 h-4" />
                   </button>
@@ -309,20 +352,36 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   preload="metadata"
                   className="rounded-2xl max-h-72 w-full object-contain"
                 />
-                <button
-                  type="button"
-                  title="Simpan / Download Video"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadMedia(
-                      message.content,
-                      message.fileName || `Video_NYARIOS_${Date.now()}.mp4`
-                    );
-                  }}
-                  className="absolute top-2 right-2 p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md opacity-90 sm:opacity-0 sm:group-hover/vid:opacity-100 transition-all hover:scale-110 shadow-lg border border-white/20 z-10 active:scale-95"
-                >
-                  <Download className="w-4 h-4 text-emerald-400" />
-                </button>
+                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover/vid:opacity-100 transition-all z-10">
+                  <button
+                    type="button"
+                    title="Bagikan Video"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShareMedia(
+                        message.content,
+                        message.fileName || `Video_NYARIOS_${Date.now()}.mp4`
+                      );
+                    }}
+                    className="p-2 rounded-full bg-blue-600/80 hover:bg-blue-600 text-white backdrop-blur-md transition-all hover:scale-110 shadow-lg border border-white/20 active:scale-95 cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4 text-white" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Simpan / Download Video"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadMedia(
+                        message.content,
+                        message.fileName || `Video_NYARIOS_${Date.now()}.mp4`
+                      );
+                    }}
+                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-all hover:scale-110 shadow-lg border border-white/20 active:scale-95 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-emerald-400" />
+                  </button>
+                </div>
               </div>
               {message.caption && message.caption !== message.content && (
                 <p className="text-xs sm:text-sm pt-1">{message.caption}</p>
@@ -604,37 +663,84 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Lightbox Photo Modal */}
       {isPhotoLightboxOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-between p-4 select-auto"
           onClick={() => setIsPhotoLightboxOpen(false)}
         >
-          <div className="absolute top-4 right-4 flex items-center gap-2.5 z-50">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownloadMedia(
-                  message.content,
-                  message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
-                );
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg transition-transform hover:scale-105"
-            >
-              <Download className="w-4 h-4" />
-              <span>Simpan Foto</span>
-            </button>
-            <button
-              onClick={() => setIsPhotoLightboxOpen(false)}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+          {/* Top Bar Actions */}
+          <div className="w-full max-w-2xl flex items-center justify-between z-50 pt-2 px-1">
+            <span className="text-xs font-mono font-bold text-slate-300 truncate max-w-[160px] sm:max-w-xs">
+              {message.fileName || 'Foto_NYARIOS.jpg'}
+            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShareMedia(
+                    message.content,
+                    message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
+                  );
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg transition-transform active:scale-95 cursor-pointer"
+                title="Bagikan / Simpan ke Galeri"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Bagikan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadMedia(
+                    message.content,
+                    message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
+                  );
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition-transform active:scale-95 cursor-pointer"
+                title="Unduh File"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Simpan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPhotoLightboxOpen(false)}
+                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <img
-            src={message.content}
-            alt="Foto Fullscreen"
-            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+
+          {/* Photo Center Display */}
+          <div className="flex-1 flex items-center justify-center p-2 w-full max-w-3xl overflow-hidden">
+            <img
+              src={message.content}
+              alt="Foto Fullscreen"
+              className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl select-auto pointer-events-auto"
+              style={{
+                touchAction: 'auto',
+                userSelect: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+
+          {/* Bottom Helpful Tip for APK users */}
+          <div
+            className="w-full max-w-md bg-white/10 backdrop-blur-md rounded-2xl p-2.5 text-center text-slate-200 text-[11px] border border-white/10 z-50 mb-2"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <p className="font-semibold text-emerald-400">
+              💡 Khusus di Aplikasi APK / HP:
+            </p>
+            <p className="text-[10px] text-slate-300 mt-0.5">
+              Klik tombol <b>Bagikan / Simpan</b> di atas, atau <b>Tekan & Tahan (Long Press)</b> gambar untuk langsung simpan ke Galeri HP Anda.
+            </p>
+          </div>
         </div>
       )}
 
