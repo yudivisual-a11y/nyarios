@@ -761,7 +761,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setActiveChatId(existing.id);
       setActiveNavTab('pesan');
       if (initialMessage && initialMessage.trim()) {
-        sendMessage(existing.id, initialMessage.trim());
+        sendMessage(existing.id, initialMessage.trim(), 'text', {}, cleanUser);
       }
       return existing.id;
     }
@@ -785,7 +785,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setActiveNavTab('pesan');
 
     if (initialMessage && initialMessage.trim()) {
-      sendMessage(newChatId, initialMessage.trim());
+      sendMessage(newChatId, initialMessage.trim(), 'text', {}, cleanUser);
     }
 
     return newChatId;
@@ -812,7 +812,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setActiveNavTab('pesan');
 
     if (initialMessage && initialMessage.trim()) {
-      sendMessage(newChatId, initialMessage.trim());
+      sendMessage(newChatId, initialMessage.trim(), 'text', {}, phone);
     }
 
     return newChatId;
@@ -837,7 +837,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       isArchived: false,
       folderIds: [],
       groupCategory: category,
-      groupDescription: description || `Grup ${name}`,
+      groupDescription: description || `Grup obrolan: ${name}`,
     };
 
     // System message
@@ -895,7 +895,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Send message
-  const sendMessage = (chatId: string, content: string, type: MessageType = 'text', extra: Partial<Message> = {}) => {
+  const sendMessage = (
+    chatId: string,
+    content: string,
+    type: MessageType = 'text',
+    extra: Partial<Message> = {},
+    overrideRecipient?: string
+  ) => {
     const rawNow = Date.now();
     const timeStr = new Date(rawNow).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
@@ -950,11 +956,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Transmit to recipient device across network in real-time
     const targetChat = chats.find(c => c.id === chatId);
-    if (targetChat && !targetChat.isGroup) {
-      const recipientTarget = targetChat.username || targetChat.phone || targetChat.name;
-      if (recipientTarget) {
-        sendCloudRealtimeMessage(currentUser, recipientTarget, newMsg);
-      }
+    const recipientTarget = overrideRecipient || targetChat?.username || targetChat?.phone || targetChat?.name;
+    if (recipientTarget && (!targetChat || !targetChat.isGroup)) {
+      sendCloudRealtimeMessage(currentUser, recipientTarget, newMsg);
     }
 
     sound.playMessageSent();
