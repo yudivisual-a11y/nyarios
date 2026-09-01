@@ -573,12 +573,12 @@ export async function sendCloudRealtimeMessage(
       await new Promise<void>((resolve) => {
         if (client.connected) {
           client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
-            setTimeout(resolve, 20);
+            setTimeout(resolve, 2);
           });
         } else {
           client.once('connect', () => {
             client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
-              setTimeout(resolve, 20);
+              setTimeout(resolve, 2);
             });
           });
         }

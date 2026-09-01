@@ -4,9 +4,9 @@
  */
 export function compressImageFile(
   file: File,
-  maxWidth = 960,
-  maxHeight = 960,
-  quality = 0.72
+  maxWidth = 900,
+  maxHeight = 900,
+  quality = 0.70
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
