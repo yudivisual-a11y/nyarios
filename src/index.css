@@ -4,23 +4,23 @@
 
 @layer base {
   :root {
-    --bg-primary: #f8fafc;
-    --bg-surface: #ffffff;
-    --bg-card: #f1f5f9;
-    --bg-inset: #e2e8f0;
-    --text-primary: #0f172a;
-    --text-secondary: #64748b;
-    --border-color: rgba(0, 0, 0, 0.08);
-    --coral-accent: #10b981;
-    --color-accent-primary: #10b981;
-    --color-accent-hover: #059669;
-    --color-accent-from: #34d399;
-    --color-accent-to: #059669;
-    --color-accent-shadow: rgba(16, 185, 129, 0.3);
-    --color-accent-glow: rgba(16, 185, 129, 0.15);
-    --shadow-raised: 4px 4px 10px rgba(0, 0, 0, 0.06), -3px -3px 8px rgba(255, 255, 255, 0.9);
-    --shadow-flat: 4px 4px 12px rgba(0, 0, 0, 0.05), -3px -3px 8px rgba(255, 255, 255, 0.9);
-    --shadow-inset: inset 3px 3px 6px rgba(0, 0, 0, 0.06), inset -2px -2px 5px rgba(255, 255, 255, 0.8);
+    --bg-primary: #18191d;
+    --bg-surface: #1e2025;
+    --bg-card: #23262c;
+    --bg-inset: #141518;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.06);
+    --coral-accent: #ff4b4b;
+    --color-accent-primary: #ff4b4b;
+    --color-accent-hover: #ff6b6b;
+    --color-accent-from: #ff5757;
+    --color-accent-to: #e63939;
+    --color-accent-shadow: rgba(255, 75, 75, 0.35);
+    --color-accent-glow: rgba(255, 75, 75, 0.2);
+    --shadow-raised: 5px 5px 12px rgba(0, 0, 0, 0.5), -3px -3px 8px rgba(255, 255, 255, 0.03);
+    --shadow-flat: 6px 6px 14px rgba(0, 0, 0, 0.5), -3px -3px 8px rgba(255, 255, 255, 0.03);
+    --shadow-inset: inset 4px 4px 8px rgba(0, 0, 0, 0.55), inset -2px -2px 6px rgba(255, 255, 255, 0.02);
   }
 
   body {
