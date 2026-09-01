@@ -12,6 +12,7 @@ import {
   AtSign,
   Copy,
   Trash2,
+  Scan,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
@@ -19,6 +20,8 @@ import { sound } from '../../utils/sound';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 import { ContactPerson } from '../../types';
 import { normalizeUsername } from '../../utils/cloudSync';
+import { UserQrModal } from '../modals/UserQrModal';
+import { QrScannerModal } from '../modals/QrScannerModal';
 
 export const ContactsView: React.FC = () => {
   const {
@@ -36,6 +39,7 @@ export const ContactsView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [newContactUsername, setNewContactUsername] = useState('');
   const [newContactName, setNewContactName] = useState('');
   const [newContactBio, setNewContactBio] = useState('Menggunakan NYARIOS');
@@ -185,22 +189,31 @@ export const ContactsView: React.FC = () => {
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsScannerModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] transition-all cursor-pointer active:scale-95"
+              title="Pindai Kode QR Teman"
+            >
+              <Scan className="w-4 h-4" />
+              <span>Pindai QR</span>
+            </button>
+
             <button
               onClick={() => setIsQrModalOpen(true)}
               className="px-3.5 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
               title="ID & QR Code Saya"
             >
               <QrCode className="w-4 h-4 text-[var(--color-accent-primary,#ff4b4b)]" />
-              <span>ID Saya</span>
+              <span>QR Saya</span>
             </button>
 
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] transition-all cursor-pointer active:scale-95"
+              className="px-3.5 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>+ Tambah @Username</span>
+              <UserPlus className="w-4 h-4 text-[var(--color-accent-primary,#ff4b4b)]" />
+              <span>+ Username</span>
             </button>
           </div>
         </div>
@@ -234,13 +247,23 @@ export const ContactsView: React.FC = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleCopyMyUsername}
-              className="w-full sm:w-auto px-4 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center justify-center gap-1.5 border border-[var(--border-color,rgba(255,255,255,0.06))] transition-all cursor-pointer shadow-sm active:scale-95"
-            >
-              <Copy className="w-3.5 h-3.5 text-[var(--color-accent-primary,#ff4b4b)]" />
-              <span>Salin Username</span>
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => setIsQrModalOpen(true)}
+                className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center justify-center gap-1.5 border border-[var(--border-color,rgba(255,255,255,0.06))] transition-all cursor-pointer shadow-sm active:scale-95"
+                title="Tampilkan QR Saya"
+              >
+                <QrCode className="w-3.5 h-3.5 text-[var(--color-accent-primary,#ff4b4b)]" />
+                <span>Lihat QR</span>
+              </button>
+              <button
+                onClick={handleCopyMyUsername}
+                className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold text-xs flex items-center justify-center gap-1.5 border border-[var(--border-color,rgba(255,255,255,0.06))] transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Copy className="w-3.5 h-3.5 text-[var(--color-accent-primary,#ff4b4b)]" />
+                <span>Salin Username</span>
+              </button>
+            </div>
           </div>
 
           {/* Contact List */}
@@ -435,50 +458,22 @@ export const ContactsView: React.FC = () => {
       )}
 
       {/* ============================================================ */}
-      {/* MODAL: ID & QR CODE SAYA */}
+      {/* MODAL: KODE QR SAYA (HD GENERATOR & DOWNLOAD) */}
       {/* ============================================================ */}
-      {isQrModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fade-in">
-          <div className="w-full max-w-sm rounded-3xl neu-flat bg-[var(--bg-surface,#1e2025)] border border-[var(--border-color,rgba(255,255,255,0.1))] p-6 space-y-4 shadow-2xl relative text-center animate-slide-up">
-            <button
-              onClick={() => setIsQrModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full neu-raised text-[var(--text-secondary,#94a3b8)] hover:text-[var(--text-primary,#f8fafc)]"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      <UserQrModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        onOpenScanner={() => setIsScannerModalOpen(true)}
+      />
 
-            <div className="w-20 h-20 rounded-3xl overflow-hidden neu-raised border border-[var(--border-color,rgba(255,255,255,0.1))] shadow-md mx-auto p-1">
-              <img src="/logo-nyarios.jpg" alt="NYARIOS" className="w-full h-full object-cover rounded-2xl" />
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-base font-black text-[var(--text-primary,#f8fafc)]">
-                {currentUser.name}
-              </h3>
-              <p className="text-sm font-mono font-bold text-[var(--color-accent-primary,#ff4b4b)]">
-                {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
-              </p>
-            </div>
-
-            {/* QR Mockup */}
-            <div className="p-4 rounded-2xl bg-white neu-raised inline-block mx-auto shadow-inner">
-              <QrCode className="w-36 h-36 text-gray-900 mx-auto" />
-            </div>
-
-            <p className="text-xs text-[var(--text-secondary,#94a3b8)]">
-              Minta teman Anda untuk menambahkan username di atas pada aplikasi NYARIOS mereka.
-            </p>
-
-            <button
-              onClick={handleCopyMyUsername}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[var(--color-accent-from,#ff5757)] to-[var(--color-accent-to,#e63939)] hover:brightness-110 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-[var(--color-accent-shadow,rgba(255,75,75,0.3))] cursor-pointer active:scale-95"
-            >
-              <Copy className="w-4 h-4" />
-              <span>Salin ID Username</span>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* ============================================================ */}
+      {/* MODAL: PEMINDAI QR KAMERA & GALERI */}
+      {/* ============================================================ */}
+      <QrScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        onOpenMyQr={() => setIsQrModalOpen(true)}
+      />
     </div>
   );
 };

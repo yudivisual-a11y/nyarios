@@ -11,12 +11,14 @@ import {
   Palette,
   ChevronRight,
   ArrowLeft,
+  QrCode,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { TransparentLogo } from '../brand/TransparentLogo';
 import { THEME_PRESETS } from '../../utils/themePresets';
+import { UserQrModal } from '../modals/UserQrModal';
 
 export const ProfileSettingsView: React.FC = () => {
   const {
@@ -37,6 +39,7 @@ export const ProfileSettingsView: React.FC = () => {
   const [avatar, setAvatar] = useState(currentUser.avatar || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -222,6 +225,14 @@ export const ProfileSettingsView: React.FC = () => {
                     {currentUser.email}
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setIsQrModalOpen(true)}
+                  className="text-[11px] px-3 py-1 rounded-full neu-raised hover:bg-[var(--bg-card,#23262c)] text-[var(--text-primary,#f8fafc)] font-bold flex items-center gap-1.5 border border-[var(--border-color,rgba(255,255,255,0.06))] transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-[var(--color-accent-primary,#ff4b4b)]" />
+                  <span>Kode QR Saya</span>
+                </button>
               </div>
             </div>
           </div>
@@ -423,6 +434,11 @@ export const ProfileSettingsView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <UserQrModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+      />
     </div>
   );
 };

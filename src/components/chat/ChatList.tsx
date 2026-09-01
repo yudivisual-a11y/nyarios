@@ -18,11 +18,15 @@ import {
   HelpCircle,
   CheckSquare,
   Calendar,
+  QrCode,
+  Scan,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Avatar } from '../ui/Avatar';
 import { EmptyState } from '../ui/EmptyState';
 import { formatRelativeTime } from '../../utils/formatters';
+import { UserQrModal } from '../modals/UserQrModal';
+import { QrScannerModal } from '../modals/QrScannerModal';
 
 interface ChatListProps {
   onOpenNewChat: () => void;
@@ -53,6 +57,8 @@ export const ChatList: React.FC<ChatListProps> = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [contextMenuChatId, setContextMenuChatId] = useState<string | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
 
   // Filter chats
   const filteredChats = useMemo(() => {
@@ -98,14 +104,32 @@ export const ChatList: React.FC<ChatListProps> = ({
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {/* Scan QR Button */}
+            <button
+              onClick={() => setIsScannerModalOpen(true)}
+              title="Pindai QR Teman"
+              className="w-9 h-9 rounded-full neu-raised-circle flex items-center justify-center text-slate-300 hover:text-white transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Scan className="w-4 h-4 text-[#ff4b4b]" />
+            </button>
+
+            {/* My QR Code Button */}
+            <button
+              onClick={() => setIsQrModalOpen(true)}
+              title="Kode QR Saya"
+              className="w-9 h-9 rounded-full neu-raised-circle flex items-center justify-center text-slate-300 hover:text-white transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <QrCode className="w-4 h-4 text-[#ff4b4b]" />
+            </button>
+
             {/* Circular Coral Red (+) Button matching reference */}
             <button
               onClick={onOpenNewChat}
               title="Pesan Baru"
-              className="w-10 h-10 rounded-full neu-coral-btn flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#ff4b4b]/30"
+              className="w-9 h-9 rounded-full neu-coral-btn flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#ff4b4b]/30 cursor-pointer"
             >
-              <Plus className="w-5 h-5 font-bold" />
+              <Plus className="w-4 h-4 font-bold" />
             </button>
           </div>
         </div>
@@ -393,6 +417,18 @@ export const ChatList: React.FC<ChatListProps> = ({
           })
         )}
       </div>
+
+      <UserQrModal
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        onOpenScanner={() => setIsScannerModalOpen(true)}
+      />
+
+      <QrScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        onOpenMyQr={() => setIsQrModalOpen(true)}
+      />
     </div>
   );
 };
