@@ -16,6 +16,7 @@ import {
 import { Button } from '../ui/Button';
 import { useApp } from '../../context/AppContext';
 import { compressImageFile } from '../../utils/imageCompressor';
+import { compressVideoFile } from '../../utils/videoCompressor';
 import { useHistoryBack } from '../../utils/useHistoryBack';
 
 interface CreateStatusModalProps {
@@ -48,6 +49,7 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -74,23 +76,34 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
     }
   };
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setVideoPreview(result);
+    try {
+      setIsProcessing(true);
+      setCompressionProgress(0);
 
-      // Check duration
-      const tempVideo = document.createElement('video');
-      tempVideo.src = result;
-      tempVideo.onloadedmetadata = () => {
-        setVideoDuration(tempVideo.duration);
+      // Smart HD Video Compression (capped at 720p HD, 1.8 Mbps crystal clear, fast & lightweight)
+      const res = await compressVideoFile(file, {
+        maxDimension: 720,
+        targetBitrate: 1_800_000,
+        maxDurationSeconds: 120,
+        onProgress: (p) => setCompressionProgress(p),
+      });
+
+      setVideoPreview(res.dataUrl);
+      setVideoDuration(res.duration);
+      setIsProcessing(false);
+    } catch (err) {
+      console.warn('Video compression notice, using direct read', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setVideoPreview(reader.result as string);
+        setIsProcessing(false);
       };
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,10 +155,16 @@ export const CreateStatusModal: React.FC<CreateStatusModalProps> = ({
 
           <div className="text-center">
             <h2 className="text-sm sm:text-base font-bold text-white">
-              {isProcessing ? 'Mengirim Status...' : 'Bagikan Status Baru'}
+              {isProcessing
+                ? compressionProgress > 0
+                  ? `Mengompres HD (${compressionProgress}%)...`
+                  : 'Memproses Media...'
+                : 'Bagikan Status Baru'}
             </h2>
             <p className="text-[11px] text-slate-400">
-              {isProcessing ? 'Menyiarkan ke teman...' : 'Hilang otomatis setelah 24 jam'}
+              {isProcessing
+                ? 'Kualitas Full HD jernih tanpa pecah...'
+                : 'Hilang otomatis setelah 24 jam'}
             </p>
           </div>
 
