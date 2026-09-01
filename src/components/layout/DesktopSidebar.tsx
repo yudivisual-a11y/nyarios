@@ -1,208 +1,91 @@
-import { PlaySquare,
-  Search,
-  Heart,
-  MessageSquare,
-  Users2,
-  Phone,
-  BookUser,
-  Bookmark,
-  CheckSquare,
-  Calendar,
-  FolderOpen,
-  Settings,
-  Plus,
-} from 'lucide-react';
+import React from 'react';
+import { Home, Search, Film, MessageCircle, Heart, PlusSquare, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { NyariosLogo } from '../brand/NyariosLogo';
-import { Avatar } from '../ui/Avatar';
-import { MainNavTab, DesktopSubTab } from '../../types';
+import { MainNavTab } from '../../types';
 
 export const DesktopSidebar: React.FC = () => {
-  const {
-    activeNavTab,
-    setActiveNavTab,
-    activeDesktopSubTab,
-    setActiveDesktopSubTab,
-    chats,
-    statuses,
-    tasks,
-    currentUser,
-  } = useApp();
+  const { activeNavTab, setActiveNavTab, currentUser, chats } = useApp();
 
   const totalUnread = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-  const pendingTasks = tasks.filter(t => t.status !== 'done').length;
-  
 
-  const mainNavItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    {
-      id: 'pesan',
-      label: 'Pesan',
-      icon: <MessageSquare className="w-5 h-5" />,
-      badge: totalUnread > 0 ? totalUnread : undefined,
-    },
-    {
-      id: 'kontak',
-      label: 'Kontak',
-      icon: <BookUser className="w-5 h-5" />,
-    },
-        {
-      id: 'konten',
-      label: 'Konten',
-      icon: <PlaySquare className="w-5 h-5" />,
-    },
-    {
-      id: 'explore',
-      label: 'Explore',
-      icon: <Search className="w-5 h-5" />,
-    },
-    {
-      id: 'notifications',
-      label: 'Notifikasi',
-      icon: <Heart className="w-5 h-5" />,
-    },
-    {
-      id: 'komunitas',
-      label: 'Komunitas',
-      icon: <Users2 className="w-5 h-5" />,
-    },
-    
-    {
-      id: 'panggilan',
-      label: 'Panggilan',
-      icon: <Phone className="w-5 h-5" />,
-    },
-  ];
-
-  const subNavItems: { id: DesktopSubTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    {
-      id: 'tersimpan',
-      label: 'Tersimpan',
-      icon: <Bookmark className="w-4 h-4" />,
-    },
-    {
-      id: 'aktivitas',
-      label: 'Aktivitas & Tugas',
-      icon: <CheckSquare className="w-4 h-4" />,
-      badge: pendingTasks > 0 ? pendingTasks : undefined,
-    },
-    {
-      id: 'jadwal',
-      label: 'Jadwal & Agenda',
-      icon: <Calendar className="w-4 h-4" />,
-    },
-    {
-      id: 'file_center',
-      label: 'File Center',
-      icon: <FolderOpen className="w-4 h-4" />,
-    },
-    {
-      id: 'pengaturan',
-      label: 'Pengaturan',
-      icon: <Settings className="w-4 h-4" />,
-    },
+  const menuItems = [
+    { id: 'home', label: 'Beranda', icon: <Home className="w-6 h-6" /> },
+    { id: 'explore', label: 'Jelajahi', icon: <Search className="w-6 h-6" /> },
+    { id: 'reels', label: 'Reels', icon: <Film className="w-6 h-6" /> },
+    { id: 'dm', label: 'DM', icon: <MessageCircle className="w-6 h-6" />, badge: totalUnread > 0 ? totalUnread : undefined },
+    { id: 'activity', label: 'Aktivitas', icon: <Heart className="w-6 h-6" /> },
+    { id: 'create', label: 'Buat', icon: <PlusSquare className="w-6 h-6" /> },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 lg:w-72 bg-[#18191d] border-r border-white/5 shrink-0 select-none h-screen transition-colors">
-      {/* Top Header Branding */}
-      <div className="p-5 border-b border-white/5 flex items-center justify-between">
-        <NyariosLogo size="md" withTagline={true} />
+    <div className="hidden md:flex flex-col w-20 lg:w-[240px] h-full bg-white dark:bg-[#0B141A] border-r border-slate-200 dark:border-white/10 py-6 transition-all duration-300">
+      {/* Logo */}
+      <div className="px-0 lg:px-6 mb-10 flex items-center justify-center lg:justify-start">
+        <h1 className="hidden lg:block text-2xl font-bold font-logo text-emerald-500 tracking-tight">NYARIOS</h1>
+        <h1 className="lg:hidden text-2xl font-bold font-logo text-emerald-500">N</h1>
       </div>
 
-      {/* Main Navigation List */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-6">
-        <div>
-          <div className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-3 mb-2">
-            Menu Utama
-          </div>
-          <div className="space-y-1.5">
-            {mainNavItems.map((item) => {
-              const isActive = activeDesktopSubTab === null && activeNavTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveDesktopSubTab(null);
-                    setActiveNavTab(item.id);
-                  }}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#ff5757] to-[#e63939] text-white font-bold shadow-lg shadow-[#ff4b4b]/20 scale-[1.02]'
-                      : 'neu-raised text-slate-300 hover:text-white hover:bg-[#23262c]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={isActive ? 'text-white' : 'text-slate-400'}>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </div>
-                  {!!item.badge && item.badge > 0 && (
-                    <span className={`min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-extrabold flex items-center justify-center ${
-                      isActive ? 'bg-white text-[#ff4b4b]' : 'bg-[#ff4b4b] text-white'
-                    }`}>
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Nav */}
+      <nav className="flex-1 px-3 space-y-2">
+        {menuItems.map((item) => {
+          const isActive = activeNavTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.id === 'create') {
+                  window.dispatchEvent(new CustomEvent('open-social-upload'));
+                } else {
+                  setActiveNavTab(item.id as MainNavTab);
+                }
+              }}
+              className={`w-full flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 group relative ${
+                isActive 
+                  ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                  : 'text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <div className={`flex-shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                {item.icon}
+              </div>
+              <span className={`hidden lg:block font-semibold text-[15px] ${isActive ? 'font-bold' : ''}`}>
+                {item.label}
+              </span>
+              
+              {item.badge && (
+                <span className="absolute right-4 lg:static ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
 
-        {/* Secondary Navigation */}
-        <div>
-          <div className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-3 mb-2">
-            Organisasi & Pintasan
-          </div>
-          <div className="space-y-1.5">
-            {subNavItems.map((item) => {
-              const isActive = activeDesktopSubTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveDesktopSubTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#ff5757] to-[#e63939] text-white font-bold shadow-md shadow-[#ff4b4b]/20'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#202227]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={isActive ? 'text-white' : 'text-slate-400'}>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </div>
-                  {!!item.badge && item.badge > 0 && (
-                    <span className="min-w-[18px] h-4 px-1 rounded-full bg-[#ff4b4b] text-white text-[10px] font-bold flex items-center justify-center">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Profile */}
-      <div className="p-3.5 border-t border-white/5 bg-[#16171a]/60">
-        <div
-          onClick={() => setActiveDesktopSubTab('profil_saya')}
-          className="flex items-center gap-3 p-2 rounded-2xl hover:bg-[#202227] cursor-pointer transition-colors"
+        {/* Profile */}
+        <button
+          onClick={() => setActiveNavTab('profile')}
+          className={`w-full flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 group ${
+            activeNavTab === 'profile' ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'
+          }`}
         >
-          <Avatar name={currentUser.name} src={currentUser.avatar} size="sm" isOnline={true} />
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
-              {currentUser.name}
-            </span>
-            <span className="text-[10px] font-mono font-bold text-[var(--color-accent-primary,#ff4b4b)] truncate">
-              {currentUser.username || `@${currentUser.name.toLowerCase().replace(/\s+/g, '_')}`}
-            </span>
-          </div>
-        </div>
+          <img 
+            src={currentUser.avatar || `https://ui-avatars.com/api/?name=${currentUser.name}&background=10B981&color=fff`} 
+            alt="Profile" 
+            className={`w-6 h-6 rounded-full border-2 transition-transform duration-200 ${activeNavTab === 'profile' ? 'border-emerald-500 scale-110' : 'border-transparent group-hover:scale-110'}`} 
+          />
+          <span className={`hidden lg:block font-semibold text-[15px] text-slate-800 dark:text-slate-200 ${activeNavTab === 'profile' ? 'font-bold text-emerald-500' : ''}`}>
+            Profil
+          </span>
+        </button>
+      </nav>
+
+      {/* Footer / Settings */}
+      <div className="px-3 mt-auto">
+        <button className="w-full flex items-center justify-center lg:justify-start gap-4 px-3 py-3 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-all group">
+          <Settings className="w-6 h-6 group-hover:rotate-45 transition-transform duration-300" />
+          <span className="hidden lg:block font-semibold text-[15px]">Lainnya</span>
+        </button>
       </div>
-    </aside>
+    </div>
   );
 };

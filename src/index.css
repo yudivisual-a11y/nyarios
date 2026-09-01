@@ -12,10 +12,10 @@
     --text-secondary: #94a3b8;
     --border-color: rgba(255, 255, 255, 0.06);
     --coral-accent: #ff4b4b;
-    --color-accent-primary: #ff4b4b;
+    --color-accent-primary: #10B981;
     --color-accent-hover: #ff6b6b;
-    --color-accent-from: #ff5757;
-    --color-accent-to: #e63939;
+    --color-accent-from: #10B981;
+    --color-accent-to: #059669;
     --color-accent-shadow: rgba(255, 75, 75, 0.35);
     --color-accent-glow: rgba(255, 75, 75, 0.2);
     --shadow-raised: 5px 5px 12px rgba(0, 0, 0, 0.5), -3px -3px 8px rgba(255, 255, 255, 0.03);

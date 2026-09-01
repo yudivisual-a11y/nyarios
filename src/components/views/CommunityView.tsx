@@ -39,7 +39,7 @@ export const CommunityView: React.FC = () => {
 
   const handleOpenSubGroup = (chatId: string) => {
     setActiveChatId(chatId);
-    setActiveNavTab('pesan');
+    setActiveNavTab('dm');
   };
 
   return (

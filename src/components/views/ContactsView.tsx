@@ -67,13 +67,13 @@ export const ContactsView: React.FC = () => {
 
     if (existingChat) {
       setActiveChatId(existingChat.id);
-      setActiveNavTab('pesan');
+      setActiveNavTab('dm');
     } else {
       createDirectChatWithUsername(
         contact.username || `@${contact.name.toLowerCase().replace(/\s+/g, '_')}`,
         contact.name
       );
-      setActiveNavTab('pesan');
+      setActiveNavTab('dm');
     }
   };
 

@@ -5,7 +5,10 @@ import { MobileNavigation } from './components/layout/MobileNavigation';
 import { ChatList } from './components/chat/ChatList';
 import { ChatCanvas } from './components/chat/ChatCanvas';
 import { CommunityView } from './components/views/CommunityView';
-import { SocialLayout } from './components/views/SocialLayout';
+import { HomeView } from './components/views/HomeView';
+import { ReelsView } from './components/views/ReelsView';
+import { DMView } from './components/views/DMView';
+import { ProfileView } from './components/views/ProfileView';
 import { ExploreView } from './components/views/ExploreView';
 import { NotificationsView } from './components/views/NotificationsView';
 import { UploadPostModal } from './components/social/UploadPostModal';
@@ -110,64 +113,25 @@ export const App: React.FC = () => {
         {activeDesktopSubTab === null && (
           <>
             {/* PESAN VIEW */}
-            {activeNavTab === 'pesan' && (
-              <div className="flex-1 flex h-full overflow-hidden">
-                {/* Chat List Pane */}
-                <div
-                  className={`w-full md:w-80 lg:w-96 shrink-0 h-full ${
-                    activeChatId ? 'hidden md:flex' : 'flex'
-                  } flex-col`}
-                >
-                  <ChatList
-                    onOpenNewChat={() => setIsNewChatOpen(true)}
-                    onOpenNewGroup={() => setIsNewGroupOpen(true)}
-                    onOpenSmartSearch={() => setIsSmartSearchOpen(true)}
-                    onOpenFolderManager={() => setIsFolderManagerOpen(true)}
-                  />
-                </div>
-
-                {/* Chat Detail Canvas Pane */}
-                <div
-                  className={`flex-1 h-full ${
-                    activeChatId ? 'flex' : 'hidden md:flex'
-                  } flex-col`}
-                >
-                  <ChatCanvas
-                    onBackMobile={() => setActiveChatId(null)}
-                    onOpenQuickAsk={() => setIsQuickAskOpen(true)}
-                    onOpenPollModal={() => setIsPollOpen(true)}
-                    onOpenScheduleModal={() => handleOpenScheduleModal()}
-                    onOpenTaskModal={(m) => handleOpenTaskModal(m)}
-                    onToggleGroupInfo={() => setIsGroupDetailOpen(!isGroupDetailOpen)}
-                  />
-                </div>
-
-                {/* Right Drawer for Group Detail */}
-                <GroupDetailDrawer
-                  isOpen={isGroupDetailOpen}
-                  onClose={() => setIsGroupDetailOpen(false)}
-                />
-              </div>
-            )}
-
-            {/* KONTAK VIEW */}
-            {activeNavTab === 'kontak' && <ContactsView />}
+            {activeNavTab === 'dm' && <DMView />}
+            
 
                         {/* KONTEN VIEW */}
-            {activeNavTab === 'konten' && <SocialLayout />}
+            {activeNavTab === 'home' && <HomeView />}
+            {activeNavTab === 'reels' && <ReelsView />}
             {activeNavTab === 'explore' && <ExploreView />}
-            {activeNavTab === 'notifications' && <NotificationsView />}
+            {activeNavTab === 'activity' && <NotificationsView />}
 
             {/* KOMUNITAS VIEW */}
-            {activeNavTab === 'komunitas' && <CommunityView />}
+            
 
             
 
             {/* PANGGILAN VIEW */}
-            {activeNavTab === 'panggilan' && <CallsView />}
+            
 
             {/* SAYA VIEW (MOBILE) */}
-            {activeNavTab === 'saya' && <UserProfileModal userId={currentUser.id} isOpen={true} onClose={() => setActiveNavTab('pesan')} />}
+            {activeNavTab === 'profile' && <ProfileView />} 
           </>
         )}
       </main>

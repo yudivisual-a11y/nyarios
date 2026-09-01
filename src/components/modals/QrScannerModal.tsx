@@ -136,7 +136,7 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
         createDirectChatWithUsername(formattedUsername, displayName);
       }
 
-      setActiveNavTab('pesan');
+      setActiveNavTab('dm');
       stopCameraStream();
       onClose();
     }, 1200);

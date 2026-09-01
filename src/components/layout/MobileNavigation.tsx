@@ -1,64 +1,40 @@
-
-import React, { useMemo } from 'react';
-import { Home, Search, PlusSquare, Heart, UserCircle, MessageSquare, BookUser, Users2, Phone } from 'lucide-react';
+import React from 'react';
+import { Home, Search, Film, MessageCircle, UserCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { MainNavTab } from '../../types';
 
 export const MobileNavigation: React.FC = () => {
-  const { activeNavTab, setActiveNavTab, chats, currentUser } = useApp();
-
-  const isSocialMode = ['konten', 'explore', 'notifications', 'saya'].includes(activeNavTab);
+  const { activeNavTab, setActiveNavTab, chats } = useApp();
 
   const totalUnread = chats.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
-  const socialNavItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'konten', label: 'Beranda', icon: <Home className="w-6 h-6" /> },
-    { id: 'explore', label: 'Cari', icon: <Search className="w-6 h-6" /> },
-    // A special upload button action could be handled here, but we will just map it to 'explore' for now and handle upload inside the views. Actually let's use a dummy id 'upload'
-    { id: 'explore', label: 'Upload', icon: <PlusSquare className="w-6 h-6" /> }, 
-    { id: 'notifications', label: 'Aktivitas', icon: <Heart className="w-6 h-6" /> },
-    { id: 'saya', label: 'Profil', icon: <UserCircle className="w-6 h-6" /> },
+  const items: { id: MainNavTab; icon: React.ReactNode; badge?: number }[] = [
+    { id: 'home', icon: <Home className="w-6 h-6" /> },
+    { id: 'explore', icon: <Search className="w-6 h-6" /> },
+    { id: 'reels', icon: <Film className="w-6 h-6" /> },
+    { id: 'dm', icon: <MessageCircle className="w-6 h-6" />, badge: totalUnread > 0 ? totalUnread : undefined },
+    { id: 'profile', icon: <UserCircle className="w-6 h-6" /> },
   ];
-
-  const commNavItems: { id: MainNavTab; label: string; icon: React.ReactNode; badge?: number }[] = [
-    { id: 'pesan', label: 'Pesan', icon: <MessageSquare className="w-5 h-5" />, badge: totalUnread > 0 ? totalUnread : undefined },
-    { id: 'kontak', label: 'Kontak', icon: <BookUser className="w-5 h-5" /> },
-    { id: 'konten', label: 'Sosial', icon: <Home className="w-5 h-5" /> }, // The bridge to social
-    { id: 'komunitas', label: 'Komunitas', icon: <Users2 className="w-5 h-5" /> },
-    { id: 'panggilan', label: 'Panggilan', icon: <Phone className="w-5 h-5" /> },
-  ];
-
-  const itemsToRender = isSocialMode ? socialNavItems : commNavItems;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[#0B141A] border-t border-slate-200 dark:border-white/10 safe-area-bottom">
-      <nav className="flex items-center justify-around h-14">
-        {itemsToRender.map((item, idx) => {
-          const isActive = activeNavTab === item.id && (item.label !== 'Upload'); // Don't highlight upload
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#0B141A]/95 backdrop-blur-md border-t border-slate-200 dark:border-white/10 safe-area-bottom pb-2">
+      <nav className="flex items-center justify-around h-12 mt-1">
+        {items.map((item) => {
+          const isActive = activeNavTab === item.id;
           return (
             <button
-              key={item.id + idx}
-              onClick={() => {
-                if (item.label === 'Upload') {
-                  // Dispatch a custom event to open upload modal
-                  window.dispatchEvent(new CustomEvent('open-social-upload'));
-                } else {
-                  setActiveNavTab(item.id);
-                }
-              }}
-              className={`relative flex-1 h-full flex flex-col items-center justify-center gap-1 transition-all ${
-                isActive 
-                  ? (isSocialMode ? 'text-slate-900 dark:text-white' : 'text-emerald-500')
-                  : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-300'
+              key={item.id}
+              onClick={() => setActiveNavTab(item.id)}
+              className={`relative flex-1 h-full flex items-center justify-center transition-all duration-200 ${
+                isActive ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <div className={`${isActive && isSocialMode ? 'scale-110 transition-transform' : ''}`}>
+              <div className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}>
                  {item.icon}
               </div>
-              {!isSocialMode && <span className="text-[10px] font-medium">{item.label}</span>}
 
-              {item.badge && !isActive && (
-                <span className="absolute top-1 right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+              {item.badge && (
+                <span className="absolute top-0 right-1/4 translate-x-2 -translate-y-1 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
                   {item.badge}
                 </span>
               )}
