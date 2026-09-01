@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, FolderGit2, Plus, Folder, UserCircle } from 'lucide-react';
+import { Home, FolderOpen, Plus, Palette, UserCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { MainNavTab } from '../../types';
 
@@ -8,9 +8,9 @@ export const MobileNavigation: React.FC = () => {
 
   const items = [
     { id: 'home', label: 'Home', icon: <Home className="w-6 h-6" /> },
-    { id: 'workspace', label: 'Workspace', icon: <FolderGit2 className="w-6 h-6" /> },
-    { id: 'action_add', label: 'Beresin', icon: <Plus className="w-7 h-7 text-white" />, special: true },
-    { id: 'files', label: 'File', icon: <Folder className="w-6 h-6" /> },
+    { id: 'projects', label: 'Project', icon: <FolderOpen className="w-6 h-6" /> },
+    { id: 'action_add', label: 'Buat', icon: <Plus className="w-7 h-7 text-white" />, special: true },
+    { id: 'assets', label: 'Assets', icon: <Palette className="w-6 h-6" /> },
     { id: 'profile', label: 'Profil', icon: <UserCircle className="w-6 h-6" /> },
   ];
 

@@ -3,12 +3,10 @@ import { useApp } from './context/AppContext';
 import { DesktopSidebar } from './components/layout/DesktopSidebar';
 import { MobileNavigation } from './components/layout/MobileNavigation';
 import { BeresHome } from './components/views/BeresHome';
-import { BeresWorkspace } from './components/views/BeresWorkspace';
-import { BeresDocumentView } from './components/views/BeresDocumentView';
-import { BeresDataView } from './components/views/BeresDataView';
-import { BeresFinanceView } from './components/views/BeresFinanceView';
-import { BeresScheduleView } from './components/views/BeresScheduleView';
-import { BeresFileView } from './components/views/BeresFileView';
+import { StudioEditor } from './components/views/StudioEditor';
+import { StudioProjectList } from './components/views/StudioProjectList';
+import { StudioAssetLibrary } from './components/views/StudioAssetLibrary';
+import { StudioTemplateGallery } from './components/views/StudioTemplateGallery';
 import { BeresProfileView } from './components/views/BeresProfileView';
 
 // Features / Modals
@@ -54,12 +52,10 @@ export const App: React.FC = () => {
       <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#0B141A] relative z-0 overflow-hidden">
         <>
             {activeNavTab === 'home' && <BeresHome />}
-            {activeNavTab === 'workspace' && <BeresWorkspace />}
-            {activeNavTab === 'docs' && <BeresDocumentView />}
-            {activeNavTab === 'data' && <BeresDataView />}
-            {activeNavTab === 'finance' && <BeresFinanceView />}
-            {activeNavTab === 'schedule' && <BeresScheduleView />}
-            {activeNavTab === 'files' && <BeresFileView />}
+            {activeNavTab === 'studio' && <StudioEditor />}
+            {activeNavTab === 'projects' && <StudioProjectList />}
+            {activeNavTab === 'templates' && <StudioTemplateGallery />}
+            {activeNavTab === 'assets' && <StudioAssetLibrary />}
             {activeNavTab === 'profile' && <BeresProfileView />}
           </>
       </main>

@@ -255,7 +255,7 @@ export interface ContactPerson {
   chatId?: string;
 }
 
-export type MainNavTab = 'home' | 'workspace' | 'docs' | 'data' | 'finance' | 'schedule' | 'files' | 'profile';
+export type MainNavTab = 'home' | 'studio' | 'projects' | 'templates' | 'assets' | 'settings' | 'profile';
 export type DesktopSubTab = 'tersimpan' | 'aktivitas' | 'jadwal' | 'file_center' | 'pengaturan' | 'profil_saya';
 
 // ==========================================
@@ -324,4 +324,53 @@ export interface SocialNotification {
   postId?: string;
   createdAt: number;
   read: boolean;
+}
+
+
+export type StudioProjectType = 'book' | 'story' | 'comic' | 'coloring' | 'worksheet' | 'illustration' | 'product_pack';
+
+export interface StudioProject {
+  id: string;
+  userId: string;
+  type: StudioProjectType;
+  title: string;
+  description: string;
+  status: 'draft' | 'published';
+  createdAt: number;
+  updatedAt: number;
+  coverImage?: string;
+  settings?: any;
+}
+
+export interface StudioCharacter {
+  id: string;
+  projectId: string;
+  name: string;
+  age?: string;
+  personality?: string;
+  appearance?: string;
+  role?: string;
+  referenceImage?: string;
+}
+
+export interface StudioPage {
+  id: string;
+  projectId: string;
+  pageNumber: number;
+  layout?: string; // e.g. grid format for comic
+  elements: StudioElement[];
+}
+
+export type ElementType = 'text' | 'image' | 'speech_bubble' | 'shape';
+
+export interface StudioElement {
+  id: string;
+  type: ElementType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  content?: string;
+  src?: string; // For images
+  style?: Record<string, string | number>; // e.g. fontSize, color, fontFamily
 }
