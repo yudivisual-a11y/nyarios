@@ -37,6 +37,23 @@ interface MessageBubbleProps {
   onEdit: (message: Message) => void;
 }
 
+function dataURLtoBlob(dataurl: string): Blob {
+  try {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const bstr = atob(arr[1] || '');
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch {
+    return new Blob([dataurl], { type: 'application/octet-stream' });
+  }
+}
+
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isGroup,
@@ -137,16 +154,54 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const handleDownloadMedia = (src: string, defaultName: string) => {
+  const handleDownloadMedia = async (src: string, defaultName: string) => {
     try {
-      const link = document.createElement('a');
-      link.href = src.startsWith('data:') ? src : `data:application/octet-stream;charset=utf-8,${encodeURIComponent(src)}`;
-      link.download = defaultName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (!src) return;
+
+      if (src.startsWith('data:')) {
+        const blob = dataURLtoBlob(src);
+
+        // Try native Android Web Share API for direct gallery save
+        if (typeof navigator !== 'undefined' && navigator.canShare) {
+          try {
+            const file = new File([blob], defaultName, { type: blob.type });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: defaultName,
+              });
+              return;
+            }
+          } catch {}
+        }
+
+        // Standard Blob URL download for Android Chrome & mobile web
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = defaultName;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } else {
+        const link = document.createElement('a');
+        link.href = src;
+        link.download = defaultName;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     } catch (e) {
-      console.warn('Download error', e);
+      console.warn('Download notice', e);
+      try {
+        window.open(src, '_blank');
+      } catch {}
     }
   };
 
@@ -223,7 +278,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   className="rounded-xl max-h-72 w-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
                   onClick={() => setIsPhotoLightboxOpen(true)}
                 />
-                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover/img:opacity-100 transition-opacity z-10">
+                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-90 sm:opacity-0 sm:group-hover/img:opacity-100 transition-opacity z-10">
                   <button
                     type="button"
                     title="Simpan / Download Foto"
@@ -234,7 +289,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         message.fileName || `Foto_NYARIOS_${Date.now()}.jpg`
                       );
                     }}
-                    className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20"
+                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95"
                   >
                     <Download className="w-4 h-4 text-emerald-400" />
                   </button>
@@ -245,7 +300,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       e.stopPropagation();
                       setIsPhotoLightboxOpen(true);
                     }}
-                    className="p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20"
+                    className="p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md transition-transform hover:scale-110 shadow-lg border border-white/20 active:scale-95"
                   >
                     <Maximize2 className="w-4 h-4" />
                   </button>
@@ -278,7 +333,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                       message.fileName || `Video_NYARIOS_${Date.now()}.mp4`
                     );
                   }}
-                  className="absolute top-2 right-2 p-2 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md opacity-0 group-hover/vid:opacity-100 transition-all hover:scale-110 shadow-lg border border-white/20 z-10"
+                  className="absolute top-2 right-2 p-2 rounded-full bg-black/75 hover:bg-black/90 text-white backdrop-blur-md opacity-90 sm:opacity-0 sm:group-hover/vid:opacity-100 transition-all hover:scale-110 shadow-lg border border-white/20 z-10 active:scale-95"
                 >
                   <Download className="w-4 h-4 text-emerald-400" />
                 </button>
