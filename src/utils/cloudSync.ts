@@ -54,7 +54,7 @@ const CLOUD_STORAGE_STATUSES_KEY = 'nyarios_cloud_active_statuses_v4';
 const PRIMARY_MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
 const TOPIC_PREFIX = 'nyarios_2026';
 const STATUS_BROADCAST_TOPIC = `${TOPIC_PREFIX}/broadcast/statuses`;
-const CHUNK_SIZE = 180 * 1024; // 180KB per packet for atomic instant photo/audio transmission
+const CHUNK_SIZE = 48 * 1024; // 48KB per packet safe for 64KB WebSocket broker limits
 
 // Global shared MQTT client singleton
 let sharedMqttClient: MqttClient | null = null;
@@ -438,6 +438,39 @@ export async function broadcastDeleteStatus(
 }
 
 /**
+ * Sends a query requesting all online peers to re-broadcast their active statuses
+ */
+export async function broadcastStatusQuery(sender: CurrentUserData) {
+  if (typeof window === 'undefined') return;
+  const cleanSender = normalizeUsername(sender.username || sender.name);
+
+  // Local mesh
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({
+      type: 'STATUS_QUERY',
+      requesterId: sender.id,
+      requesterName: sender.name,
+    });
+  }
+
+  // MQTT
+  const client = getOrCreateMqttClient(cleanSender);
+  const payload = JSON.stringify({
+    type: 'STATUS_QUERY',
+    requesterId: sender.id,
+    requesterName: sender.name,
+  });
+
+  if (client.connected) {
+    client.publish(STATUS_BROADCAST_TOPIC, payload, { qos: 1 });
+  } else {
+    client.once('connect', () => {
+      client.publish(STATUS_BROADCAST_TOPIC, payload, { qos: 1 });
+    });
+  }
+}
+
+/**
  * Sends a real-time message (text, image, video, voice note, document) across the internet
  */
 export async function sendCloudRealtimeMessage(
@@ -602,6 +635,7 @@ export function subscribeToCloudEvents(
     onUserPresence: (user: ContactPerson) => void;
     onStatusStory?: (status: CloudStatusPayload) => void;
     onStatusDeleted?: (statusId: string) => void;
+    onStatusQuery?: (requesterId: string) => void;
   }
 ): () => void {
   if (typeof window === 'undefined' || !myIdentifier) return () => {};
@@ -714,6 +748,10 @@ export function subscribeToCloudEvents(
         if (handlers.onStatusDeleted) {
           handlers.onStatusDeleted(data.statusId);
         }
+      } else if (type === 'STATUS_QUERY') {
+        if (handlers.onStatusQuery) {
+          handlers.onStatusQuery(data?.requesterId || '');
+        }
       }
     } catch (e) {
       console.warn('[NYARIOS Cloud v4] Event handler notice:', e);
@@ -779,7 +817,8 @@ export function subscribeToCloudEvents(
         if (
           data.type === 'STATUS_STORY' ||
           data.type === 'CHUNKED_STATUS' ||
-          data.type === 'DELETE_STATUS'
+          data.type === 'DELETE_STATUS' ||
+          data.type === 'STATUS_QUERY'
         ) {
           handleIncomingPayload(data.type, data);
         }

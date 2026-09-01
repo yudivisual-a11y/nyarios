@@ -29,6 +29,7 @@ import {
   IncomingCallSignal,
   broadcastCloudStatus,
   broadcastDeleteStatus,
+  broadcastStatusQuery,
   getCloudActiveStatuses,
 } from '../utils/cloudSync';
 import {
@@ -500,7 +501,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     if (!isLoggedIn || !currentUser?.id) return;
     try {
-      localStorage.setItem(`nyarios_data_${currentUser.id}_statuses`, JSON.stringify(statuses));
+      // Save lightweight metadata to localStorage; full media is safely kept in IndexedDB
+      const lightweight = statuses.map((st) => ({
+        ...st,
+        content: st.type === 'video' && st.content.length > 50000 ? '' : st.content,
+      }));
+      localStorage.setItem(`nyarios_data_${currentUser.id}_statuses`, JSON.stringify(lightweight));
     } catch (e) {
       console.warn('Storage quota notice', e);
     }
@@ -687,10 +693,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteStatusFromDb(deletedStatusId);
         setStatuses((prev) => prev.filter((s) => s.id !== deletedStatusId));
       },
+      onStatusQuery: (requesterId) => {
+        if (requesterId !== currentUser?.id) {
+          // Re-broadcast all our active statuses so late-joining peers receive all stories (1, 2, 3, etc.)
+          statuses
+            .filter((s) => s.userId === currentUser.id || s.userName === currentUser.name)
+            .forEach((s) => {
+              broadcastCloudStatus(currentUser, s);
+            });
+        }
+      },
     });
 
-    return () => unsubscribe();
-  }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn]);
+    // Query online peers for all active statuses after connection initializes
+    const queryTimer = setTimeout(() => {
+      broadcastStatusQuery(currentUser);
+    }, 1500);
+
+    return () => {
+      clearTimeout(queryTimer);
+      unsubscribe();
+    };
+  }, [currentUser?.username, currentUser?.phone, currentUser?.id, isLoggedIn, statuses]);
 
   // Restore Active Statuses (including Large Video Stories) from IndexedDB on startup
   useEffect(() => {
