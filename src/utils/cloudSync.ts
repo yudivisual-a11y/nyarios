@@ -61,12 +61,8 @@ export function normalizePhoneNumber(phone: string): string {
  */
 export function identityToTopic(identity: string): string {
   if (!identity) return `${TOPIC_PREFIX}_general`;
-  if (identity.includes('@') || !/^\+?\d+$/.test(identity)) {
-    const cleanUser = normalizeUsername(identity);
-    return `${TOPIC_PREFIX}_u_${cleanUser}`;
-  }
-  const digits = identity.replace(/\D/g, '');
-  return `${TOPIC_PREFIX}_ph_${digits}`;
+  const clean = identity.replace(/^@+/, '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `${TOPIC_PREFIX}_u_${clean}`;
 }
 
 /**
@@ -147,15 +143,15 @@ export async function sendCloudRealtimeMessage(
   recipientIdentity: string,
   message: Message
 ) {
+  const cleanRecipient = normalizeUsername(recipientIdentity);
   const payload: CloudMessagePayload = {
     id: `cmsg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     senderId: sender.id,
     senderName: sender.name,
-    senderUsername: sender.username,
+    senderUsername: sender.username || `@${normalizeUsername(sender.name)}`,
     senderPhone: sender.phone,
     senderAvatar: sender.avatar,
-    recipientUsername: recipientIdentity.startsWith('@') ? recipientIdentity : undefined,
-    recipientPhone: !recipientIdentity.startsWith('@') ? recipientIdentity : undefined,
+    recipientUsername: `@${cleanRecipient}`,
     message,
     timestamp: Date.now(),
   };
@@ -164,10 +160,10 @@ export async function sendCloudRealtimeMessage(
 
   // Send across public internet via high-speed cloud relay
   try {
+    const postBody = JSON.stringify({ type: 'INCOMING_MESSAGE', payload });
     await fetch(`${RELAY_BASE}/${recipientTopic}`, {
       method: 'POST',
-      body: JSON.stringify({ type: 'INCOMING_MESSAGE', payload }),
-      headers: { 'Content-Type': 'application/json' },
+      body: postBody,
     });
   } catch (err) {
     console.warn('Cloud message relay notice', err);
@@ -183,15 +179,15 @@ export async function sendCloudCallSignal(
   callType: 'voice' | 'video'
 ): Promise<string> {
   const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const cleanRecipient = normalizeUsername(recipientIdentity);
   const signal: IncomingCallSignal = {
     callId,
     callerId: caller.id,
     callerName: caller.name,
-    callerUsername: caller.username,
+    callerUsername: caller.username || `@${normalizeUsername(caller.name)}`,
     callerPhone: caller.phone,
     callerAvatar: caller.avatar,
-    recipientUsername: recipientIdentity.startsWith('@') ? recipientIdentity : undefined,
-    recipientPhone: !recipientIdentity.startsWith('@') ? recipientIdentity : undefined,
+    recipientUsername: `@${cleanRecipient}`,
     type: callType,
     timestamp: Date.now(),
     status: 'ringing',
@@ -235,6 +231,7 @@ export async function respondToCloudCallSignal(
 
 /**
  * Listens to incoming cloud events (messages, calls, user presence) in real time
+ * with dual SSE streaming + robust short-interval polling fallback.
  */
 export function subscribeToCloudEvents(
   myIdentifier: string,
@@ -252,64 +249,100 @@ export function subscribeToCloudEvents(
   const myCallRespTopic = `${myTopic}_calls_resp`;
 
   const sources: EventSource[] = [];
+  const processedMessageIds = new Set<string>();
+  let lastPollTime = Math.floor((Date.now() - 60000) / 1000); // 1 minute buffer
+
+  const processIncomingEventData = (rawData: any) => {
+    try {
+      const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+      if (data?.type === 'INCOMING_MESSAGE' && data?.payload) {
+        const payload: CloudMessagePayload = data.payload;
+        if (!processedMessageIds.has(payload.id)) {
+          processedMessageIds.add(payload.id);
+          handlers.onMessage(payload);
+        }
+      } else if (data?.type === 'CALL_SIGNAL' && data?.signal) {
+        handlers.onIncomingCall(data.signal);
+      } else if (data?.type === 'CALL_RESPONSE' && data?.callId) {
+        handlers.onCallResponse(data.callId, data.status);
+      } else if (data?.type === 'USER_PRESENCE' && data?.user) {
+        handlers.onUserPresence(data.user);
+      }
+    } catch {}
+  };
 
   try {
-    // 1. Listen for Incoming Messages
+    // 1. SSE Connection for Incoming Messages
     const msgSource = new EventSource(`${RELAY_BASE}/${myTopic}/sse`);
     msgSource.onmessage = (event) => {
       try {
         const raw = JSON.parse(event.data);
-        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
-        if (data.type === 'INCOMING_MESSAGE' && data.payload) {
-          handlers.onMessage(data.payload);
-        }
+        const content = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw.message || raw;
+        processIncomingEventData(content);
       } catch {}
     };
     sources.push(msgSource);
 
-    // 2. Listen for Incoming Calls
+    // 2. SSE Connection for Incoming Calls
     const callSource = new EventSource(`${RELAY_BASE}/${myCallTopic}/sse`);
     callSource.onmessage = (event) => {
       try {
         const raw = JSON.parse(event.data);
-        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
-        if (data.type === 'CALL_SIGNAL' && data.signal) {
-          handlers.onIncomingCall(data.signal);
-        }
+        const content = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw.message || raw;
+        processIncomingEventData(content);
       } catch {}
     };
     sources.push(callSource);
 
-    // 3. Listen for Call Responses
+    // 3. SSE Connection for Call Responses
     const callRespSource = new EventSource(`${RELAY_BASE}/${myCallRespTopic}/sse`);
     callRespSource.onmessage = (event) => {
       try {
         const raw = JSON.parse(event.data);
-        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
-        if (data.type === 'CALL_RESPONSE') {
-          handlers.onCallResponse(data.callId, data.status);
-        }
+        const content = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw.message || raw;
+        processIncomingEventData(content);
       } catch {}
     };
     sources.push(callRespSource);
 
-    // 4. Listen for User Directory Presence
+    // 4. SSE Connection for Global User Presence
     const dirSource = new EventSource(`${RELAY_BASE}/${TOPIC_PREFIX}_directory/sse`);
     dirSource.onmessage = (event) => {
       try {
         const raw = JSON.parse(event.data);
-        const data = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw;
-        if (data.type === 'USER_PRESENCE' && data.user) {
-          handlers.onUserPresence(data.user);
-        }
+        const content = typeof raw.message === 'string' ? JSON.parse(raw.message) : raw.message || raw;
+        processIncomingEventData(content);
       } catch {}
     };
     sources.push(dirSource);
   } catch (err) {
-    console.warn('SSE subscription notice', err);
+    console.warn('SSE setup notice', err);
   }
 
+  // Fast interval polling fallback (every 2.5s) to guarantee zero message drops
+  const pollInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`${RELAY_BASE}/${myTopic}/json?since=${lastPollTime}`);
+      if (res.ok) {
+        const text = await res.text();
+        const lines = text.trim().split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const item = JSON.parse(line);
+            if (item.time && item.time > lastPollTime) {
+              lastPollTime = item.time;
+            }
+            const msgContent = typeof item.message === 'string' ? JSON.parse(item.message) : item.message;
+            processIncomingEventData(msgContent);
+          } catch {}
+        }
+      }
+    } catch {}
+  }, 2500);
+
   return () => {
+    clearInterval(pollInterval);
     sources.forEach((src) => {
       try {
         src.close();

@@ -19,6 +19,7 @@ import { sound } from '../utils/sound';
 import { THEME_PRESETS, applyThemeVariables } from '../utils/themePresets';
 import {
   normalizePhoneNumber,
+  normalizeUsername,
   registerUserOnCloud,
   sendCloudRealtimeMessage,
   sendCloudCallSignal,
@@ -461,44 +462,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
 
         setChats((prevChats) => {
+          const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
+          const senderPhone = payload.senderPhone ? normalizePhoneNumber(payload.senderPhone) : '';
+
           const existing = prevChats.find((c) => {
-            if (payload.senderUsername && c.username) {
-              return c.username.toLowerCase() === payload.senderUsername.toLowerCase();
+            if (senderUser && c.username) {
+              return normalizeUsername(c.username) === senderUser;
             }
-            if (payload.senderPhone && c.phone) {
-              return normalizePhoneNumber(c.phone) === normalizePhoneNumber(payload.senderPhone);
+            if (senderPhone && c.phone) {
+              return normalizePhoneNumber(c.phone) === senderPhone;
+            }
+            if (senderUser && c.name) {
+              return normalizeUsername(c.name) === senderUser;
             }
             return false;
           });
-          const chatId = existing ? existing.id : `chat_${Date.now()}`;
+          const chatId = existing ? existing.id : `chat_cloud_${Date.now()}`;
 
           const incomingMsg: Message = {
             ...payload.message,
-            id: `msg_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+            id: payload.message.id || `msg_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
             chatId,
             senderId: payload.senderId,
             senderName: payload.senderName,
             senderAvatar: payload.senderAvatar,
             isOutgoing: false,
             timestamp: timeStr,
-            rawTimestamp: payload.timestamp,
+            rawTimestamp: payload.timestamp || Date.now(),
           };
 
-          setMessages((prevMsgs) => ({
-            ...prevMsgs,
-            [chatId]: [...(prevMsgs[chatId] || []), incomingMsg],
-          }));
+          setMessages((prevMsgs) => {
+            const list = prevMsgs[chatId] || [];
+            if (list.some(m => m.id === incomingMsg.id || (m.rawTimestamp === incomingMsg.rawTimestamp && m.content === incomingMsg.content))) {
+              return prevMsgs;
+            }
+            return {
+              ...prevMsgs,
+              [chatId]: [...list, incomingMsg],
+            };
+          });
 
           if (existing) {
             return prevChats.map((c) =>
               c.id === existing.id
                 ? {
                     ...c,
-                    unreadCount: activeChatId === existing.id ? 0 : c.unreadCount + 1,
+                    unreadCount: activeChatId === existing.id ? 0 : (c.unreadCount || 0) + 1,
                     lastMessage: {
                       text: payload.message.content || 'Pesan baru',
                       timestamp: timeStr,
-                      rawTimestamp: payload.timestamp,
+                      rawTimestamp: payload.timestamp || Date.now(),
                       senderName: payload.senderName,
                       type: payload.message.type,
                     },
@@ -509,8 +522,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             const newChat: Chat = {
               id: chatId,
               isGroup: false,
-              name: payload.senderName,
-              username: payload.senderUsername,
+              name: payload.senderName || `@${senderUser}`,
+              username: payload.senderUsername || (senderUser ? `@${senderUser}` : undefined),
               phone: payload.senderPhone,
               avatar: payload.senderAvatar,
               bio: 'Teman di NYARIOS',
@@ -522,7 +535,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               lastMessage: {
                 text: payload.message.content || 'Pesan baru',
                 timestamp: timeStr,
-                rawTimestamp: payload.timestamp,
+                rawTimestamp: payload.timestamp || Date.now(),
                 senderName: payload.senderName,
                 type: payload.message.type,
               },
@@ -937,8 +950,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Transmit to recipient device across network in real-time
     const targetChat = chats.find(c => c.id === chatId);
-    if (targetChat && targetChat.phone && !targetChat.isGroup) {
-      sendCloudRealtimeMessage(currentUser, targetChat.phone, newMsg);
+    if (targetChat && !targetChat.isGroup) {
+      const recipientTarget = targetChat.username || targetChat.phone || targetChat.name;
+      if (recipientTarget) {
+        sendCloudRealtimeMessage(currentUser, recipientTarget, newMsg);
+      }
     }
 
     sound.playMessageSent();
