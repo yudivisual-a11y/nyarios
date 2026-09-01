@@ -400,6 +400,44 @@ export async function broadcastCloudStatus(
 }
 
 /**
+ * Broadcasts a delete status signal across the entire cloud mesh and MQTT real-time stream
+ */
+export async function broadcastDeleteStatus(
+  sender: CurrentUserData,
+  statusId: string
+) {
+  if (typeof window === 'undefined' || !statusId) return;
+
+  const cleanSender = normalizeUsername(sender.username || sender.name);
+
+  // 1. Remove from local active statuses storage
+  try {
+    const active = getCloudActiveStatuses();
+    const filtered = active.filter((s) => s.id !== statusId);
+    localStorage.setItem(CLOUD_STORAGE_STATUSES_KEY, JSON.stringify(filtered));
+  } catch (err) {
+    console.warn('Status delete storage error:', err);
+  }
+
+  // 2. Broadcast to Local Mesh Bus
+  if (localBroadcastBus) {
+    localBroadcastBus.postMessage({ type: 'DELETE_STATUS', statusId, senderId: sender.id });
+  }
+
+  // 3. Broadcast to MQTT Broker across the internet
+  const client = getOrCreateMqttClient(cleanSender);
+  const payload = JSON.stringify({ type: 'DELETE_STATUS', statusId, senderId: sender.id });
+
+  if (client.connected) {
+    client.publish(STATUS_BROADCAST_TOPIC, payload, { qos: 1 });
+  } else {
+    client.once('connect', () => {
+      client.publish(STATUS_BROADCAST_TOPIC, payload, { qos: 1 });
+    });
+  }
+}
+
+/**
  * Sends a real-time message (text, image, video, voice note, document) across the internet
  */
 export async function sendCloudRealtimeMessage(
@@ -563,6 +601,7 @@ export function subscribeToCloudEvents(
     onCallResponse: (callId: string, status: string) => void;
     onUserPresence: (user: ContactPerson) => void;
     onStatusStory?: (status: CloudStatusPayload) => void;
+    onStatusDeleted?: (statusId: string) => void;
   }
 ): () => void {
   if (typeof window === 'undefined' || !myIdentifier) return () => {};
@@ -671,6 +710,10 @@ export function subscribeToCloudEvents(
         if (handlers.onStatusStory) {
           handlers.onStatusStory(data.payload);
         }
+      } else if (type === 'DELETE_STATUS' && data?.statusId) {
+        if (handlers.onStatusDeleted) {
+          handlers.onStatusDeleted(data.statusId);
+        }
       }
     } catch (e) {
       console.warn('[NYARIOS Cloud v4] Event handler notice:', e);
@@ -733,7 +776,11 @@ export function subscribeToCloudEvents(
           handleIncomingPayload('USER_PRESENCE', data);
         }
       } else if (topic === STATUS_BROADCAST_TOPIC || topic.includes('/statuses')) {
-        if (data.type === 'STATUS_STORY' || data.type === 'CHUNKED_STATUS') {
+        if (
+          data.type === 'STATUS_STORY' ||
+          data.type === 'CHUNKED_STATUS' ||
+          data.type === 'DELETE_STATUS'
+        ) {
           handleIncomingPayload(data.type, data);
         }
       }

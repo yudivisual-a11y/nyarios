@@ -28,6 +28,7 @@ import {
   subscribeToCloudEvents,
   IncomingCallSignal,
   broadcastCloudStatus,
+  broadcastDeleteStatus,
   getCloudActiveStatuses,
 } from '../utils/cloudSync';
 import {
@@ -681,6 +682,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const filtered = prev.filter((s) => s.id !== incomingStatus.id);
           return [fullStory, ...filtered];
         });
+      },
+      onStatusDeleted: (deletedStatusId) => {
+        deleteStatusFromDb(deletedStatusId);
+        setStatuses((prev) => prev.filter((s) => s.id !== deletedStatusId));
       },
     });
 
@@ -1428,6 +1433,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const deleteStatus = (statusId: string) => {
     deleteStatusFromDb(statusId);
     setStatuses(prev => prev.filter(s => s.id !== statusId));
+    broadcastDeleteStatus(currentUser, statusId);
   };
 
   // Calls
