@@ -250,6 +250,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const activeChatIdRef = useRef<string | null>(null);
+  const chatsRef = useRef<Chat[]>(chats);
+
+  useEffect(() => {
+    chatsRef.current = chats;
+  }, [chats]);
+
   useEffect(() => {
     activeChatIdRef.current = activeChatId;
     if (activeChatId) {
@@ -589,66 +595,78 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           minute: '2-digit',
         });
 
-        setChats((prevChats) => {
-          const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
-          const senderName = payload.senderName ? normalizeUsername(payload.senderName) : '';
-          const senderPhone = payload.senderPhone ? payload.senderPhone.replace(/\D/g, '') : '';
-          const defaultChatId = `chat_${payload.senderId || payload.senderName.toLowerCase().replace(/\s+/g, '_')}`;
+        const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
+        const senderName = payload.senderName ? normalizeUsername(payload.senderName) : '';
+        const senderPhone = payload.senderPhone ? payload.senderPhone.replace(/\D/g, '') : '';
+        const defaultChatId = `chat_${payload.senderId || (senderUser || senderName || 'teman').toLowerCase().replace(/\s+/g, '_')}`;
 
-          const existing = prevChats.find((c) => {
-            if (c.username && senderUser && normalizeUsername(c.username) === senderUser) {
-              return true;
-            }
-            if (c.username && senderName && normalizeUsername(c.username) === senderName) {
-              return true;
-            }
-            if (c.name && senderName && normalizeUsername(c.name) === senderName) {
-              return true;
-            }
-            if (c.name && senderUser && normalizeUsername(c.name) === senderUser) {
-              return true;
-            }
-            if (senderPhone && c.phone && c.phone.replace(/\D/g, '') === senderPhone) {
-              return true;
-            }
-            return c.id === defaultChatId || c.id === `chat_${payload.senderId}`;
-          });
+        // 1. Match chat from synchronous ref
+        const currentChatsList = chatsRef.current || [];
+        const existing = currentChatsList.find((c) => {
+          if (c.username && senderUser && normalizeUsername(c.username) === senderUser) return true;
+          if (c.username && senderName && normalizeUsername(c.username) === senderName) return true;
+          if (c.name && senderName && normalizeUsername(c.name) === senderName) return true;
+          if (c.name && senderUser && normalizeUsername(c.name) === senderUser) return true;
+          if (senderPhone && c.phone && c.phone.replace(/\D/g, '') === senderPhone) return true;
+          return c.id === defaultChatId || c.id === `chat_${payload.senderId}`;
+        });
 
-          const activeId = existing ? existing.id : defaultChatId;
+        const targetChatId = existing ? existing.id : defaultChatId;
 
-          const incomingMsg: Message = {
-            ...payload.message,
-            id: payload.message.id || `msg_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            chatId: activeId,
-            senderId: payload.senderId,
-            senderName: payload.senderName,
-            senderAvatar: payload.senderAvatar,
-            isOutgoing: false,
-            timestamp: timeStr,
-            rawTimestamp: payload.timestamp || Date.now(),
+        const incomingMsg: Message = {
+          ...payload.message,
+          id: payload.message.id || `msg_cloud_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          chatId: targetChatId,
+          senderId: payload.senderId,
+          senderName: payload.senderName,
+          senderAvatar: payload.senderAvatar,
+          isOutgoing: false,
+          timestamp: timeStr,
+          rawTimestamp: payload.timestamp || Date.now(),
+        };
+
+        // 2. Update Messages immediately
+        setMessages((prevMsgs) => {
+          const list = prevMsgs[targetChatId] || [];
+          if (list.some(m => m.id === incomingMsg.id || (m.rawTimestamp === incomingMsg.rawTimestamp && m.content === incomingMsg.content))) {
+            return prevMsgs;
+          }
+          const updated = {
+            ...prevMsgs,
+            [targetChatId]: [...list, incomingMsg],
           };
 
-          setMessages((prevMsgs) => {
-            const list = prevMsgs[activeId] || [];
-            if (list.some(m => m.id === incomingMsg.id || (m.rawTimestamp === incomingMsg.rawTimestamp && m.content === incomingMsg.content))) {
-              return prevMsgs;
+          // Also if activeChatId is currently open and belongs to this sender, update activeChatId key
+          if (activeChatIdRef.current && activeChatIdRef.current !== targetChatId) {
+            const activeChatObj = currentChatsList.find(c => c.id === activeChatIdRef.current);
+            const cUser = activeChatObj?.username ? normalizeUsername(activeChatObj.username) : '';
+            const cName = activeChatObj?.name ? normalizeUsername(activeChatObj.name) : '';
+            if (
+              (senderUser && (cUser === senderUser || cName === senderUser)) ||
+              (senderName && (cName === senderName || cUser === senderName))
+            ) {
+              const activeList = updated[activeChatIdRef.current] || [];
+              if (!activeList.some(m => m.id === incomingMsg.id)) {
+                updated[activeChatIdRef.current] = [...activeList, incomingMsg];
+              }
             }
-            return {
-              ...prevMsgs,
-              [activeId]: [...list, incomingMsg],
-            };
-          });
+          }
 
-          const snippet = formatLastMessageSnippet(payload.message);
+          return updated;
+        });
 
-          if (existing) {
+        // 3. Update Chats list
+        const snippet = formatLastMessageSnippet(payload.message);
+        setChats((prevChats) => {
+          const existingInPrev = prevChats.find(c => c.id === targetChatId);
+          if (existingInPrev) {
             return prevChats.map((c) =>
-              c.id === existing.id
+              c.id === targetChatId
                 ? {
                     ...c,
                     avatar: payload.senderAvatar || c.avatar,
                     name: c.isGroup ? c.name : (payload.senderName || c.name),
-                    unreadCount: activeChatIdRef.current === existing.id ? 0 : (c.unreadCount || 0) + 1,
+                    unreadCount: activeChatIdRef.current === targetChatId ? 0 : (c.unreadCount || 0) + 1,
                     lastMessage: {
                       text: snippet,
                       timestamp: timeStr,
@@ -661,14 +679,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             );
           } else {
             const newChat: Chat = {
-              id: activeId,
+              id: targetChatId,
               isGroup: false,
               name: payload.senderName || (senderUser ? `@${senderUser}` : 'Teman Baru'),
               username: payload.senderUsername || (senderUser ? `@${senderUser}` : undefined),
               phone: payload.senderPhone,
               avatar: payload.senderAvatar,
               bio: 'Teman di NYARIOS',
-              unreadCount: activeChatIdRef.current === activeId ? 0 : 1,
+              unreadCount: activeChatIdRef.current === targetChatId ? 0 : 1,
               isPinned: false,
               isMuted: false,
               isArchived: false,
@@ -1134,8 +1152,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const currentChatMessages = useMemo(() => {
     if (!activeChatId) return [];
-    return messages[activeChatId] || [];
-  }, [messages, activeChatId]);
+    if (!activeChat) return messages[activeChatId] || [];
+
+    const activeUser = activeChat.username ? normalizeUsername(activeChat.username) : '';
+    const activeName = activeChat.name ? normalizeUsername(activeChat.name) : '';
+    const activeCleanId = activeChat.id.replace(/^chat_/, '').replace(/^direct_/, '');
+
+    const allCandidateKeys = new Set<string>([activeChatId]);
+    if (activeUser) {
+      allCandidateKeys.add(`chat_${activeUser}`);
+      allCandidateKeys.add(`chat_direct_${activeUser}`);
+    }
+    if (activeName) {
+      allCandidateKeys.add(`chat_${activeName}`);
+      allCandidateKeys.add(`chat_direct_${activeName}`);
+    }
+    if (activeCleanId) {
+      allCandidateKeys.add(`chat_${activeCleanId}`);
+    }
+
+    const combinedMsgs: Message[] = [];
+    const seenIds = new Set<string>();
+
+    Object.entries(messages).forEach(([key, list]) => {
+      if (allCandidateKeys.has(key)) {
+        list.forEach((m) => {
+          if (!seenIds.has(m.id)) {
+            seenIds.add(m.id);
+            combinedMsgs.push(m);
+          }
+        });
+      }
+    });
+
+    if (combinedMsgs.length === 0) {
+      return messages[activeChatId] || [];
+    }
+
+    return combinedMsgs.sort((a, b) => (a.rawTimestamp || 0) - (b.rawTimestamp || 0));
+  }, [messages, activeChatId, activeChat]);
 
   // Create direct chat via Username (@username)
   const createDirectChatWithUsername = (username: string, name?: string, initialMessage?: string): string => {
