@@ -572,11 +572,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Real-time Cloud Synchronization Listener
   useEffect(() => {
-    const myIdentifier = currentUser?.username || currentUser?.phone || currentUser?.id;
-    if (!myIdentifier || !isLoggedIn) return;
+    const myIdentifiers = [
+      currentUser?.username,
+      currentUser?.name,
+      currentUser?.id,
+      currentUser?.phone,
+    ].filter(Boolean) as string[];
+
+    if (myIdentifiers.length === 0 || !isLoggedIn) return;
     registerUserOnCloud(currentUser);
 
-    const unsubscribe = subscribeToCloudEvents(myIdentifier, {
+    const unsubscribe = subscribeToCloudEvents(myIdentifiers, {
       onMessage: (payload) => {
         const timeStr = new Date(payload.timestamp).toLocaleTimeString('id-ID', {
           hour: '2-digit',
@@ -585,20 +591,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         setChats((prevChats) => {
           const senderUser = payload.senderUsername ? normalizeUsername(payload.senderUsername) : '';
+          const senderName = payload.senderName ? normalizeUsername(payload.senderName) : '';
           const senderPhone = payload.senderPhone ? payload.senderPhone.replace(/\D/g, '') : '';
           const defaultChatId = `chat_${payload.senderId || payload.senderName.toLowerCase().replace(/\s+/g, '_')}`;
 
           const existing = prevChats.find((c) => {
-            if (c.username && senderUser) {
-              return normalizeUsername(c.username) === senderUser;
+            if (c.username && senderUser && normalizeUsername(c.username) === senderUser) {
+              return true;
+            }
+            if (c.username && senderName && normalizeUsername(c.username) === senderName) {
+              return true;
+            }
+            if (c.name && senderName && normalizeUsername(c.name) === senderName) {
+              return true;
+            }
+            if (c.name && senderUser && normalizeUsername(c.name) === senderUser) {
+              return true;
             }
             if (senderPhone && c.phone && c.phone.replace(/\D/g, '') === senderPhone) {
               return true;
             }
-            if (senderUser && c.name) {
-              return normalizeUsername(c.name) === senderUser;
-            }
-            return c.id === defaultChatId;
+            return c.id === defaultChatId || c.id === `chat_${payload.senderId}`;
           });
 
           const activeId = existing ? existing.id : defaultChatId;
@@ -1350,9 +1363,56 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Transmit to recipient device across network in real-time
     const targetChat = chats.find(c => c.id === chatId);
-    const recipientTarget = overrideRecipient || targetChat?.username || targetChat?.phone || targetChat?.name;
-    if (recipientTarget && (!targetChat || !targetChat.isGroup)) {
-      sendCloudRealtimeMessage(currentUser, recipientTarget, newMsg);
+    if (!targetChat || !targetChat.isGroup) {
+      const candidateIdentities: string[] = [];
+
+      if (overrideRecipient) candidateIdentities.push(overrideRecipient);
+      if (targetChat?.username) candidateIdentities.push(targetChat.username);
+      if (targetChat?.name) candidateIdentities.push(targetChat.name);
+      if (targetChat?.phone) candidateIdentities.push(targetChat.phone);
+      if (targetChat?.id) {
+        candidateIdentities.push(targetChat.id.replace(/^chat_/, '').replace(/^direct_/, ''));
+      }
+
+      // Check matching contacts
+      const cleanTargetName = targetChat?.name ? normalizeUsername(targetChat.name) : '';
+      const cleanTargetUser = targetChat?.username ? normalizeUsername(targetChat.username) : '';
+
+      contacts.forEach(ct => {
+        const ctUser = ct.username ? normalizeUsername(ct.username) : '';
+        const ctName = ct.name ? normalizeUsername(ct.name) : '';
+        if (
+          (cleanTargetUser && ctUser === cleanTargetUser) ||
+          (cleanTargetName && (ctName === cleanTargetName || ctUser === cleanTargetName)) ||
+          ct.id === targetChat?.id
+        ) {
+          if (ct.username) candidateIdentities.push(ct.username);
+          if (ct.name) candidateIdentities.push(ct.name);
+          if (ct.phone) candidateIdentities.push(ct.phone);
+          if (ct.id) candidateIdentities.push(ct.id);
+        }
+      });
+
+      // Check cloud directory users
+      const dirUsers = getCloudDirectoryUsers(currentUser.username || currentUser.name);
+      dirUsers.forEach(u => {
+        const uUser = u.username ? normalizeUsername(u.username) : '';
+        const uName = u.name ? normalizeUsername(u.name) : '';
+        if (
+          (cleanTargetUser && uUser === cleanTargetUser) ||
+          (cleanTargetName && (uName === cleanTargetName || uUser === cleanTargetName))
+        ) {
+          if (u.username) candidateIdentities.push(u.username);
+          if (u.name) candidateIdentities.push(u.name);
+          if (u.phone) candidateIdentities.push(u.phone);
+          if (u.id) candidateIdentities.push(u.id);
+        }
+      });
+
+      const uniqueCandidates = Array.from(new Set(candidateIdentities.filter(Boolean)));
+      if (uniqueCandidates.length > 0) {
+        sendCloudRealtimeMessage(currentUser, uniqueCandidates, newMsg);
+      }
     }
 
     sound.playMessageSent();

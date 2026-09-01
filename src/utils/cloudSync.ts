@@ -510,11 +510,15 @@ export async function broadcastStatusQuery(sender: CurrentUserData) {
  */
 export async function sendCloudRealtimeMessage(
   sender: CurrentUserData,
-  recipientIdentity: string,
+  recipientIdentity: string | string[],
   message: Message
 ) {
-  const cleanRecipient = normalizeUsername(recipientIdentity);
+  const rawList = Array.isArray(recipientIdentity) ? recipientIdentity : [recipientIdentity];
+  const uniqueIdentities = Array.from(new Set(rawList.filter(Boolean).map(id => id.trim())));
+  if (uniqueIdentities.length === 0) return;
+
   const cleanSender = normalizeUsername(sender.username || sender.name);
+  const primaryRecipient = normalizeUsername(uniqueIdentities[0]);
 
   const payload: CloudMessagePayload = {
     id: `cmsg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -523,18 +527,26 @@ export async function sendCloudRealtimeMessage(
     senderUsername: sender.username || (sender.name ? `@${normalizeUsername(sender.name)}` : undefined),
     senderPhone: sender.phone,
     senderAvatar: sender.avatar,
-    recipientUsername: `@${cleanRecipient}`,
+    recipientUsername: `@${primaryRecipient}`,
     message,
     timestamp: Date.now(),
   };
 
-  const recipientTopic = identityToTopic(recipientIdentity);
-  const targetMsgTopic = `${recipientTopic}/messages`;
   const stringified = JSON.stringify({ type: 'INCOMING_MESSAGE', payload });
+
+  // Compute unique target message topics
+  const targetTopics = new Set<string>();
+  uniqueIdentities.forEach((id) => {
+    const topic = identityToTopic(id);
+    targetTopics.add(`${topic}/messages`);
+  });
 
   // 1. Broadcast locally (instant 0ms delivery if on same device/browser tabs)
   if (localBroadcastBus) {
-    localBroadcastBus.postMessage({ type: 'INCOMING_MESSAGE', topic: recipientTopic, payload });
+    uniqueIdentities.forEach((id) => {
+      const topic = identityToTopic(id);
+      localBroadcastBus.postMessage({ type: 'INCOMING_MESSAGE', topic, payload });
+    });
   }
 
   // 2. Publish to MQTT broker across internet
@@ -552,37 +564,39 @@ export async function sendCloudRealtimeMessage(
     }
   };
 
-  if (stringified.length <= CHUNK_SIZE) {
-    // Fits in a single atomic packet (All photos, voice notes, audio, and text)
-    publishToTopic(targetMsgTopic, stringified);
-  } else {
-    // Large payload (e.g. video files > 180KB) -> Send in numbered sequential chunks with ACK
-    const totalChunks = Math.ceil(stringified.length / CHUNK_SIZE);
-    const chunkMsgId = payload.id;
+  for (const targetMsgTopic of targetTopics) {
+    if (stringified.length <= CHUNK_SIZE) {
+      // Fits in a single atomic packet (All photos, voice notes, audio, and text)
+      publishToTopic(targetMsgTopic, stringified);
+    } else {
+      // Large payload (e.g. video files > 180KB) -> Send in numbered sequential chunks with ACK
+      const totalChunks = Math.ceil(stringified.length / CHUNK_SIZE);
+      const chunkMsgId = payload.id;
 
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkData = stringified.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-      const chunkPayload = JSON.stringify({
-        type: 'CHUNKED_MESSAGE',
-        chunkMsgId,
-        index: i,
-        total: totalChunks,
-        chunkData,
-      });
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkData = stringified.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        const chunkPayload = JSON.stringify({
+          type: 'CHUNKED_MESSAGE',
+          chunkMsgId,
+          index: i,
+          total: totalChunks,
+          chunkData,
+        });
 
-      await new Promise<void>((resolve) => {
-        if (client.connected) {
-          client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
-            setTimeout(resolve, 2);
-          });
-        } else {
-          client.once('connect', () => {
+        await new Promise<void>((resolve) => {
+          if (client.connected) {
             client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
               setTimeout(resolve, 2);
             });
-          });
-        }
-      });
+          } else {
+            client.once('connect', () => {
+              client.publish(targetMsgTopic, chunkPayload, { qos: 1 }, () => {
+                setTimeout(resolve, 2);
+              });
+            });
+          }
+        });
+      }
     }
   }
 }
@@ -662,7 +676,7 @@ export async function respondToCloudCallSignal(
  * Subscribes to real-time events for the logged-in user with instant MQTT WebSocket + Wildcard QoS 1 + Local Mesh + Chunk Reassembly
  */
 export function subscribeToCloudEvents(
-  myIdentifier: string,
+  myIdentifier: string | string[],
   handlers: {
     onMessage: (payload: CloudMessagePayload) => void;
     onIncomingCall: (signal: IncomingCallSignal) => void;
@@ -676,10 +690,12 @@ export function subscribeToCloudEvents(
 ): () => void {
   if (typeof window === 'undefined' || !myIdentifier) return () => {};
 
-  const cleanMyUser = normalizeUsername(myIdentifier);
-  const myTopic = identityToTopic(myIdentifier);
-  const myWildcardTopic = `${myTopic}/#`;
-  const myMsgTopic = `${myTopic}/messages`;
+  const idList = Array.isArray(myIdentifier) ? myIdentifier : [myIdentifier];
+  const uniqueIds = Array.from(new Set(idList.filter(Boolean).map(id => id.trim())));
+  if (uniqueIds.length === 0) return () => {};
+
+  const cleanMyUser = normalizeUsername(uniqueIds[0]);
+  const myTopics = uniqueIds.map(id => identityToTopic(id));
   const dirTopic = `${TOPIC_PREFIX}/directory`;
 
   const processedMsgIds = new Set<string>();
@@ -743,7 +759,7 @@ export function subscribeToCloudEvents(
           entry = {
             total,
             chunks: new Map<number, string>(),
-            timer: setTimeout(() => statusChunkBufferMap.delete(chunkStatusId), 60000),
+            timer: setTimeout(() => statusChunkBufferMap.delete(chunkStatusId), 45000),
           };
           statusChunkBufferMap.set(chunkStatusId, entry);
         }
@@ -802,7 +818,7 @@ export function subscribeToCloudEvents(
   const handleLocalMessage = (event: MessageEvent) => {
     const data = event.data;
     if (!data) return;
-    if (data.topic && data.topic !== myTopic) return;
+    if (data.topic && !myTopics.includes(data.topic)) return;
     handleIncomingPayload(data.type, data);
   };
 
@@ -812,14 +828,19 @@ export function subscribeToCloudEvents(
 
   // 2. Listen on Cloud MQTT WebSocket Broker with Wildcard QoS 1
   const client = getOrCreateMqttClient(cleanMyUser);
-  const topicsToSubscribe = [myWildcardTopic, myMsgTopic, dirTopic, STATUS_BROADCAST_TOPIC];
+
+  const topicsToSubscribe: string[] = [dirTopic, STATUS_BROADCAST_TOPIC];
+  myTopics.forEach((t) => {
+    topicsToSubscribe.push(`${t}/#`);
+    topicsToSubscribe.push(`${t}/messages`);
+  });
 
   topicsToSubscribe.forEach((t) => currentSubscribedTopics.add(t));
 
   const subscribeAll = () => {
     client.subscribe(topicsToSubscribe, { qos: 1 }, (err) => {
       if (!err) {
-        console.log(`[NYARIOS Cloud v4] Subscribed QoS 1 to: ${myWildcardTopic}, ${STATUS_BROADCAST_TOPIC}`);
+        console.log(`[NYARIOS Cloud v4] Subscribed QoS 1 to topics:`, topicsToSubscribe);
       }
     });
   };
@@ -836,10 +857,12 @@ export function subscribeToCloudEvents(
       if (!text) return;
       const data = JSON.parse(text);
 
-      const isMyTopic =
-        topic === myMsgTopic ||
-        topic.startsWith(myTopic) ||
-        topic.includes(`/u/${cleanMyUser}`);
+      const isMyTopic = myTopics.some(
+        (mt) =>
+          topic === `${mt}/messages` ||
+          topic.startsWith(mt) ||
+          uniqueIds.some((uid) => topic.includes(`/u/${normalizeUsername(uid)}`))
+      );
 
       if (isMyTopic) {
         if (data.type === 'INCOMING_MESSAGE' || data.type === 'CHUNKED_MESSAGE') {
