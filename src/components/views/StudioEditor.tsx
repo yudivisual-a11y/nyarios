@@ -183,17 +183,29 @@ export const StudioEditor: React.FC = () => {
                  {project.title}
                </h1>
                
-               <div className="w-full h-64 bg-slate-100 border-2 border-dashed border-slate-300 rounded-lg mb-6 flex flex-col items-center justify-center">
-                  <ImageIcon className="w-12 h-12 text-slate-400 mb-2" />
-                  <span className="text-sm text-slate-500 text-center px-4">
-                    {currentPage.imagePrompt ? `AI Prompt: ${currentPage.imagePrompt}` : 'Klik untuk generate ilustrasi'}
-                  </span>
-               </div>
+               {currentPage.imagePrompt ? (
+                  <div className="w-full h-64 bg-slate-100 rounded-lg mb-6 overflow-hidden relative group shadow-inner">
+                     <img 
+                        src={`https://image.pollinations.ai/prompt/${encodeURIComponent(currentPage.imagePrompt + ' ' + project.title)}?width=800&height=400&nologo=true`} 
+                        alt={currentPage.imagePrompt}
+                        className="w-full h-full object-cover"
+                        crossOrigin="anonymous"
+                     />
+                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <span className="text-white text-xs px-4 text-center">{currentPage.imagePrompt}</span>
+                     </div>
+                  </div>
+               ) : (
+                  <div className="w-full h-64 bg-slate-100 border-2 border-dashed border-slate-300 rounded-lg mb-6 flex flex-col items-center justify-center">
+                     <ImageIcon className="w-12 h-12 text-slate-400 mb-2" />
+                     <span className="text-sm text-slate-500">Gambar tidak tersedia</span>
+                  </div>
+               )}
                
                <textarea 
                   value={currentPage.text}
                   onChange={handleTextChange}
-                  className="w-full flex-1 bg-transparent border-none text-slate-800 text-lg leading-relaxed resize-none focus:ring-0 p-0 font-serif"
+                  className="w-full flex-1 bg-transparent border-none text-slate-900 dark:text-slate-900 text-lg leading-relaxed resize-none focus:ring-0 p-0 font-serif"
                   placeholder="Ketik isi cerita di sini..."
                />
                
