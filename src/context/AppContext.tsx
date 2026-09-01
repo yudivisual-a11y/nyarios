@@ -577,6 +577,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return 'Pesan baru';
   };
 
+  const statusesRef = useRef(statuses);
+  useEffect(() => {
+    statusesRef.current = statuses;
+  }, [statuses]);
+
   // Real-time Cloud Synchronization Listener
   useEffect(() => {
     const myIdentifiers = [
@@ -818,7 +823,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       onStatusQuery: (requesterId) => {
         if (requesterId !== currentUser?.id) {
           // Re-broadcast all our active statuses so late-joining peers receive all stories (1, 2, 3, etc.)
-          statuses
+          statusesRef.current
             .filter((s) => s.userId === currentUser.id || s.userName === currentUser.name)
             .forEach((s) => {
               broadcastCloudStatus(currentUser, s);
@@ -838,7 +843,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       clearTimeout(queryTimer);
       unsubscribe();
     };
-  }, [currentUser?.username, currentUser?.phone, currentUser?.id, currentUser?.avatar, isLoggedIn, statuses]);
+  }, [currentUser?.username, currentUser?.phone, currentUser?.id, currentUser?.avatar, isLoggedIn]);
 
   // Restore Active Statuses (including Large Video Stories) from IndexedDB on startup
   useEffect(() => {
