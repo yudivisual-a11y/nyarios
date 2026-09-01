@@ -22,6 +22,9 @@ import { sendFirebasePhoneOtp, verifyFirebasePhoneOtp } from '../../utils/fireba
 export const LoginView: React.FC = () => {
   const { loginWithPhone, loginWithGoogle } = useApp();
 
+  // Splash screen before login form
+  const [showSplash, setShowSplash] = useState(true);
+
   // Login Mode Tab: 'phone' or 'google'
   const [activeMode, setActiveMode] = useState<'phone' | 'google'>('phone');
 
@@ -181,36 +184,75 @@ export const LoginView: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col justify-between items-center bg-[#141518] text-slate-100 px-4 sm:px-6 pt-6 pb-10 select-none overflow-y-auto relative">
-      {/* Background ambient neon glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-[#ff4b4b]/15 via-rose-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+      {/* Background ambient glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-gradient-to-tr from-emerald-500/15 via-green-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
+      {/* ============================================================ */}
+      {/* SPLASH SCREEN — Mangga Ka Lebet */}
+      {/* ============================================================ */}
+      {showSplash ? (
+        <div className="flex flex-col items-center justify-center min-h-screen w-full animate-fade-in space-y-8">
+          {/* Logo baru */}
+          <div className="relative group">
+            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-400 rounded-[40px] blur-2xl opacity-40 animate-pulse" />
+            <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-[36px] overflow-hidden shadow-2xl border-4 border-white/10">
+              <img
+                src="/logo-nyarios.jpg"
+                alt="NYARIOS Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Teks sambutan */}
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+              Mangga Ka Lebet
+            </h1>
+            <p className="text-sm text-slate-400 font-medium">Silakan Masuk</p>
+          </div>
+
+          {/* Tombol masuk */}
+          <button
+            onClick={() => setShowSplash(false)}
+            className="mt-4 px-10 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base shadow-xl hover:scale-105 active:scale-95 transition-transform flex items-center gap-3"
+          >
+            <span>Ayo Mulai</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+
+          {/* Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>NYARIOS • 2026</span>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Top Header Status Tag */}
       <div className="w-full max-w-md flex items-center justify-between z-10">
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>Server Aktif • 2026</span>
         </div>
-        <span className="text-[10px] uppercase font-mono font-extrabold tracking-widest text-[#ff4b4b] bg-[#ff4b4b]/10 px-3 py-1 rounded-full border border-[#ff4b4b]/20">
+        <span className="text-[10px] uppercase font-mono font-extrabold tracking-widest text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
           v2.0 PRO
         </span>
       </div>
 
       {/* Center Main Card */}
       <div className="flex flex-col items-center text-center max-w-md w-full my-auto animate-fade-in relative z-10 space-y-6 pt-4">
-        {/* ========================================================================= */}
-        {/* PRO LUXURY LOGO BRANDING */}
-        {/* ========================================================================= */}
+        {/* LOGO BARU */}
         <div className="flex flex-col items-center space-y-3">
           <div className="relative group cursor-pointer">
-            {/* Ambient Back Glow Ring */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-[#ff4b4b] via-amber-500 to-[#ff4b4b] rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse" />
-
-            {/* 3D Neumorphic Logo Container */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#1e2025] neu-raised border border-white/10 flex items-center justify-center p-3 shadow-2xl overflow-hidden group-hover:scale-105 transition-transform">
+            {/* Ambient glow */}
+            <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400 via-green-500 to-teal-400 rounded-3xl blur-xl opacity-30 group-hover:opacity-60 transition duration-500 animate-pulse" />
+            {/* Logo container */}
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden border border-white/10 shadow-2xl group-hover:scale-105 transition-transform">
               <img
-                src="/nyarios-logo.png"
+                src="/logo-nyarios.jpg"
                 alt="NYARIOS Logo"
-                className="w-full h-full object-contain scale-110 drop-shadow-[0_8px_20px_rgba(255,75,75,0.35)]"
+                className="w-full h-full object-cover"
               />
             </div>
           </div>
@@ -596,6 +638,8 @@ export const LoginView: React.FC = () => {
 
       {/* Invisible reCAPTCHA container for Google Firebase Phone Auth */}
       <div id="recaptcha-container" />
+    </>
+    )}
     </div>
   );
 };
