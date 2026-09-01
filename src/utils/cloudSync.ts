@@ -51,6 +51,20 @@ const localBroadcastBus = typeof window !== 'undefined' && 'BroadcastChannel' in
   : null;
 
 /**
+ * Universal Byte Decoder that converts Buffer, Uint8Array or String to UTF-8 text across Node & Browsers
+ */
+function decodePayloadToString(buf: unknown): string {
+  if (typeof buf === 'string') return buf;
+  if (!buf) return '';
+  try {
+    if (buf instanceof Uint8Array || (typeof Buffer !== 'undefined' && Buffer.isBuffer(buf))) {
+      return new TextDecoder('utf-8').decode(buf as Uint8Array);
+    }
+  } catch {}
+  return String(buf);
+}
+
+/**
  * Normalizes username to clean alphanumeric identifier (@acepyudi -> acepyudi)
  */
 export function normalizeUsername(username: string): string {
@@ -446,22 +460,32 @@ export function subscribeToCloudEvents(
     client.on('connect', subscribeAll);
   }
 
-  const handleMqttMessage = (topic: string, messageBuffer: Buffer) => {
+  const handleMqttMessage = (topic: string, messageBuffer: unknown) => {
     try {
-      const text = messageBuffer.toString();
+      const text = decodePayloadToString(messageBuffer);
+      if (!text) return;
       const data = JSON.parse(text);
-      if (topic === msgTopic) {
+
+      if (topic === msgTopic || topic.endsWith('/messages')) {
         if (data.type === 'INCOMING_MESSAGE' || data.type === 'CHUNKED_MESSAGE') {
           handleIncomingPayload(data.type, data);
         }
-      } else if (topic === callTopic && data.type === 'CALL_SIGNAL') {
-        handleIncomingPayload('CALL_SIGNAL', data);
-      } else if (topic === callRespTopic && data.type === 'CALL_RESPONSE') {
-        handleIncomingPayload('CALL_RESPONSE', data);
-      } else if (topic === dirTopic && data.type === 'USER_PRESENCE') {
-        handleIncomingPayload('USER_PRESENCE', data);
+      } else if (topic === callTopic || topic.endsWith('/calls')) {
+        if (data.type === 'CALL_SIGNAL') {
+          handleIncomingPayload('CALL_SIGNAL', data);
+        }
+      } else if (topic === callRespTopic || topic.endsWith('/calls_resp')) {
+        if (data.type === 'CALL_RESPONSE') {
+          handleIncomingPayload('CALL_RESPONSE', data);
+        }
+      } else if (topic === dirTopic || topic.endsWith('/directory')) {
+        if (data.type === 'USER_PRESENCE') {
+          handleIncomingPayload('USER_PRESENCE', data);
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[NYARIOS Cloud] MQTT parse notice:', err);
+    }
   };
 
   client.on('message', handleMqttMessage);
