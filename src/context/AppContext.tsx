@@ -34,6 +34,7 @@ import {
   broadcastPresenceQuery,
   getCloudDirectoryUsers,
   getCloudActiveStatuses,
+  disconnectCloudMqtt,
 } from '../utils/cloudSync';
 import {
   saveStatusToDb,
@@ -1092,6 +1093,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const logout = () => {
+    disconnectCloudMqtt();
     setIsLoggedIn(false);
     localStorage.setItem('nyarios_is_logged_in', 'false');
     localStorage.removeItem('nyarios_user');

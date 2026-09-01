@@ -132,36 +132,20 @@ export function identityToTopic(identity: string): string {
 }
 
 /**
- * Initializes and manages shared MQTT WebSocket connection
+ * Initializes and manages shared persistent MQTT WebSocket connection
  */
-function getOrCreateMqttClient(myIdentifier?: string): MqttClient {
-  const cleanUser = myIdentifier ? normalizeUsername(myIdentifier) : (activeUserIdentifier || 'guest');
-
-  // If client exists and is connected for the same user, return it
-  if (sharedMqttClient && sharedMqttClient.connected && activeUserIdentifier === cleanUser) {
-    return sharedMqttClient;
-  }
-
-  // If user changed, tear down old client
-  if (sharedMqttClient && activeUserIdentifier !== cleanUser) {
-    try {
-      sharedMqttClient.end(true);
-    } catch {}
-    sharedMqttClient = null;
-    currentSubscribedTopics.clear();
-  }
-
+export function getOrCreateMqttClient(): MqttClient {
   if (sharedMqttClient && !sharedMqttClient.disconnected) {
     return sharedMqttClient;
   }
 
-  activeUserIdentifier = cleanUser;
-  const clientId = `nyarios_v4_${cleanUser}_${getDeviceId()}`;
+  const deviceId = getDeviceId();
+  const clientId = `nyarios_${deviceId}_${Math.random().toString(36).substring(2, 6)}`;
 
   try {
     sharedMqttClient = mqtt.connect(PRIMARY_MQTT_BROKER, {
       clientId,
-      clean: true, // Clean session to avoid broker session state lockups
+      clean: true, // Clean session to avoid broker session lockups
       connectTimeout: 10000,
       reconnectPeriod: 1000,
       keepalive: 15,
@@ -189,6 +173,16 @@ function getOrCreateMqttClient(myIdentifier?: string): MqttClient {
   }
 
   return sharedMqttClient as MqttClient;
+}
+
+export function disconnectCloudMqtt() {
+  if (sharedMqttClient) {
+    try {
+      sharedMqttClient.end(true);
+    } catch {}
+    sharedMqttClient = null;
+    currentSubscribedTopics.clear();
+  }
 }
 
 // Reconnect instantly when browser tab becomes active or network recovers
@@ -257,7 +251,7 @@ export async function registerUserOnCloud(user: CurrentUserData) {
     }
 
     // 3. Broadcast via MQTT with QoS 1
-    const client = getOrCreateMqttClient(cleanUser);
+    const client = getOrCreateMqttClient();
     const payload = JSON.stringify({ type: 'USER_PRESENCE', user: cloudUser });
     if (client.connected) {
       client.publish(`${TOPIC_PREFIX}/directory`, payload, { qos: 1 });
@@ -290,7 +284,7 @@ export async function broadcastPresenceQuery(sender: CurrentUserData) {
   }
 
   // MQTT
-  const client = getOrCreateMqttClient(cleanSender);
+  const client = getOrCreateMqttClient();
   const payload = JSON.stringify({
     type: 'PRESENCE_QUERY',
     requesterId: sender.id,
@@ -387,7 +381,7 @@ export async function broadcastCloudStatus(
   }
 
   // 3. Broadcast to MQTT Broker across the internet
-  const client = getOrCreateMqttClient(cleanSender);
+  const client = getOrCreateMqttClient();
   const stringified = JSON.stringify({ type: 'STATUS_STORY', payload: status });
 
   const publishToTopic = (data: string) => {
@@ -462,7 +456,7 @@ export async function broadcastDeleteStatus(
   }
 
   // 3. Broadcast to MQTT Broker across the internet
-  const client = getOrCreateMqttClient(cleanSender);
+  const client = getOrCreateMqttClient();
   const payload = JSON.stringify({ type: 'DELETE_STATUS', statusId, senderId: sender.id });
 
   if (client.connected) {
@@ -491,7 +485,7 @@ export async function broadcastStatusQuery(sender: CurrentUserData) {
   }
 
   // MQTT
-  const client = getOrCreateMqttClient(cleanSender);
+  const client = getOrCreateMqttClient();
   const payload = JSON.stringify({
     type: 'STATUS_QUERY',
     requesterId: sender.id,
@@ -560,7 +554,7 @@ export async function sendCloudRealtimeMessage(
   }
 
   // 2. Publish to MQTT broker across internet
-  const client = getOrCreateMqttClient(cleanSender);
+  const client = getOrCreateMqttClient();
 
   const publishToTopic = (topic: string, data: string) => {
     if (client.connected) {
@@ -645,7 +639,7 @@ export async function sendCloudCallSignal(
   }
 
   // MQTT broker with QoS 1
-  const client = getOrCreateMqttClient(cleanCaller);
+  const client = getOrCreateMqttClient();
   if (client.connected) {
     client.publish(`${recipientTopic}/calls`, stringified, { qos: 1 });
   } else {
@@ -837,7 +831,7 @@ export function subscribeToCloudEvents(
   }
 
   // 2. Listen on Cloud MQTT WebSocket Broker with Wildcard QoS 1
-  const client = getOrCreateMqttClient(cleanMyUser);
+  const client = getOrCreateMqttClient();
 
   const topicsToSubscribe: string[] = [
     `${TOPIC_PREFIX}/directory`,
